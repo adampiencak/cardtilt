@@ -34,6 +34,7 @@
     aspect-ratio: 1050 / 1572;
     position:relative;
     touch-action:none;
+    container-type:inline-size;   /* lets the title scale with the card via cqw */
   }
 
   /* soft floor shadow that reacts to tilt */
@@ -231,6 +232,22 @@
     50%    { opacity:1; }
   }
 
+  /* code-rendered card title, sitting on the frame's (now blank) banner */
+  .cardtitle{
+    position:absolute; left:0; right:0;
+    top:var(--title-y, 95.6%);
+    transform:translateY(-50%);
+    z-index:9; pointer-events:none;
+    text-align:center; white-space:nowrap;
+    font-family:"Iowan Old Style","Palatino Linotype","Book Antiqua",Georgia,"Times New Roman",serif;
+    font-weight:600; text-transform:uppercase;
+    letter-spacing:.16em;
+    font-size:calc(5.2cqw * var(--title-scale,1));
+    color:#241c14;
+    text-shadow:0 1px 0 rgba(255,255,255,.35);
+  }
+  .cardtitle .dot{ font-size:.62em; opacity:.7; margin:0 .55em; vertical-align:.14em; }
+
   /* ---------- Control panel ---------- */
   .panel{
     width:300px;
@@ -248,6 +265,12 @@
   .ctrl label{ font-size:11px; display:flex; justify-content:space-between; color:#c9c0e0; }
   .ctrl label b{ color:#ffce6e; font-variant-numeric:tabular-nums; }
   input[type=range]{ width:100%; accent-color:#ffce6e; height:4px; }
+  .titlefield{
+    width:100%; padding:8px 10px; border-radius:8px;
+    background:rgba(255,255,255,.06); color:#f2ecff;
+    border:1px solid rgba(255,255,255,.15); font-size:12px; letter-spacing:.08em;
+  }
+  .titlefield:focus{ outline:none; border-color:#ffce6e; }
   .row{ display:flex; gap:10px; }
   .row .ctrl{ flex:1; }
   .slots{ display:flex; gap:8px; }
@@ -287,6 +310,7 @@
           <div class="layer char slot-empty"  id="char"  data-label="CHARACTER"></div>
           <div class="charshine-wrap" id="charshineWrap"><div class="charshine" id="charshine"></div></div>
           <div class="layer frame slot-empty" id="frame" data-label="FRAME"></div>
+          <div class="cardtitle" id="cardtitle"><span class="dot">✦</span><span id="titletext">THE FOOL</span><span class="dot">✦</span></div>
           <div class="holo" id="holo"></div>
           <div class="glare" id="glare"></div>
           <div class="rim"></div>
@@ -311,6 +335,19 @@
     <input type="file" id="fileChar" accept="image/*" hidden>
     <input type="file" id="fileShine" accept="image/*" hidden>
     <input type="file" id="fileFrame" accept="image/*" hidden>
+
+    <p class="grouplabel">Card title (rendered in code)</p>
+    <input type="text" id="titleInput" value="THE FOOL" placeholder="Card name…" class="titlefield">
+    <div class="row">
+      <div class="ctrl">
+        <label>Title size <b id="vTsz">1.00×</b></label>
+        <input type="range" id="rTsz" min="40" max="180" value="100">
+      </div>
+      <div class="ctrl">
+        <label>Title Y <b id="vTy">0.0</b></label>
+        <input type="range" id="rTy" min="-60" max="60" value="0">
+      </div>
+    </div>
 
     <div class="divider"></div>
 
@@ -448,6 +485,10 @@
   // --- auto-registration state: content boxes of the character & shine art, plus the
   //     card box dimensions (taken from the frame). Used to place the shine exactly. ---
   let charImg = null, shineImg = null, boxW = 1050, boxH = 1572;
+  const cardtitle = document.getElementById('cardtitle');
+  const titletext = document.getElementById('titletext');
+  let titleBaseY = 95.6;   // banner centre (%), re-derived from each frame
+  const updateTitlePos = () => root.setProperty('--title-y', (titleBaseY + (cfg.titleY||0)) + '%');
 
   // config (live-tuned)
   const cfg = {
@@ -457,7 +498,7 @@
     bgfar:40,             // background distance: blur + haze + desaturation
     shine:0.70,           // character specular shine strength
     charshine:true,
-    glow:0.9, holo:0.45, glare:0.5, ease:0.12, idle:1.6,
+    glow:0.9, holo:0.45, glare:0.5, ease:0.12, idle:1.6, titleY:0,
     float:true, sparkle:true, gyro:true, glowline:true, chshadow:true
   };
 
@@ -597,6 +638,11 @@
   bind('rGlare', v=>(v/100).toFixed(2), v=>{cfg.glare=v/100; root.setProperty('--glare',v/100);});
   bind('rEase',  v=>(v/100).toFixed(2), v=>{cfg.ease=v/100;});
   bind('rIdle',  v=>(v/100).toFixed(1)+'×', v=>{cfg.idle=v/100;});
+  bind('rTsz',   v=>(v/100).toFixed(2)+'×', v=>root.setProperty('--title-scale', v/100));
+  bind('rTy',    v=>(v/10).toFixed(1),      v=>{cfg.titleY=v/10; updateTitlePos();});
+  document.getElementById('titleInput').addEventListener('input', e => {
+    titletext.textContent = e.target.value.toUpperCase();
+  });
 
   const toggle = (id, key) => {
     const el = document.getElementById(id);
@@ -711,6 +757,10 @@
           bg.style.left   = Math.max(0,(wl/w - ov))*100 + '%';
           bg.style.right  = Math.max(0,(1 - wr/w - ov))*100 + '%';
           bg.style.bottom = Math.max(0,(1 - wb/h - ov))*100 + '%';
+          // banner sits between the window bottom and the card's bottom edge → place title
+          let cb=h-1; while(cb>0 && A(cxp,cb)<20) cb--;
+          titleBaseY = (wb/h + (cb/h - wb/h)*0.45) * 100;
+          updateTitlePos();
         }
         alignShine();
       } catch(e){ /* tainted canvas — keep the border-radius fallback */ }
@@ -731,10 +781,12 @@
   wire('slotFrame','fileFrame', frame);
 
   // Load the shipped assets by default; the shine mask can be replaced by the user.
-  loadInto(bg,    'cardbackground.png');
-  loadInto(charL, 'character.png');
-  loadInto(charshine, 'shinelayer_character.png');
-  loadInto(frame, 'cardframe.png');
+  // cache-bust so re-uploaded assets (same filename) always load the newest version
+  const v = '?t=' + Date.now();
+  loadInto(bg,    'cardbackground.png'+v);
+  loadInto(charL, 'character.png'+v);
+  loadInto(charshine, 'shinelayer_character.png'+v);
+  loadInto(frame, 'cardframe.png'+v);
   applyBgFar(cfg.bgfar);   // push the scene back on first paint
 
   /* ---------- presets ---------- */
