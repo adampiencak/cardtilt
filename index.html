@@ -116,6 +116,12 @@
     pointer-events:none;
   }
 
+  /* recess shadow: the frame casts inward onto the scene so it reads as sunk deep behind
+     the front plane (spatial depth, no blur). Box-shadow is set live from JS. */
+  .recess{
+    position:absolute; z-index:1; pointer-events:none; border-radius:2px;
+  }
+
   /* ---- specular shine riding on the character's highlights ----
      the wrapper takes the character's exact transform; the inner rect is registered to
      the character content and uses the shine map as a LUMINANCE mask, so a moving light
@@ -306,6 +312,7 @@
         <div class="aura"></div>
         <div class="clip">
           <div class="layer bg slot-empty"    id="bg"    data-label="SCENE\A(back)"></div>
+          <div class="recess" id="recess"></div>
           <div class="layer charshadow"       id="charshadow"></div>
           <div class="layer char slot-empty"  id="char"  data-label="CHARACTER"></div>
           <div class="charshine-wrap" id="charshineWrap"><div class="charshine" id="charshine"></div></div>
@@ -377,9 +384,15 @@
         <input type="range" id="rDepth" min="0" max="140" value="70">
       </div>
     </div>
-    <div class="ctrl">
-      <label>Background distance (haze / blur) <b id="vBgf">40</b></label>
-      <input type="range" id="rBgf" min="0" max="100" value="40">
+    <div class="row">
+      <div class="ctrl">
+        <label>Background recess (depth) <b id="vRec">55</b></label>
+        <input type="range" id="rRec" min="0" max="100" value="55">
+      </div>
+      <div class="ctrl">
+        <label>Background haze <b id="vBgf">40</b></label>
+        <input type="range" id="rBgf" min="0" max="100" value="40">
+      </div>
     </div>
 
     <p class="grouplabel">Character position (px) · +right / +down</p>
@@ -473,6 +486,7 @@
   const card  = document.getElementById('card');
   const clip   = document.querySelector('.clip');
   const bg     = document.getElementById('bg');
+  const recess = document.getElementById('recess');
   const charL  = document.getElementById('char');
   const charshadow = document.getElementById('charshadow');
   const charshineWrap = document.getElementById('charshineWrap');
@@ -495,7 +509,8 @@
     tilt:15, pbg:20, pchar:10, cfill:1.00, depth:70,
     coffx:26, coffy:16,   // character resting offset (px, +right / +down)
     shad:0.40, sho:1.0,   // cast-shadow strength + offset multiplier
-    bgfar:40,             // background distance: blur + haze + desaturation
+    bgfar:40,             // background distance: haze + desaturation (light blur)
+    recess:55,            // recess shadow depth — how sunk-in the scene reads
     shine:0.70,           // character specular shine strength
     charshine:true,
     glow:0.9, holo:0.45, glare:0.5, ease:0.12, idle:1.6, titleY:0,
@@ -628,10 +643,16 @@
   bind('rGlo',   v=>(v/100).toFixed(2),    v=>root.setProperty('--glowline-op', v/100));
   bind('rShad',  v=>(v/100).toFixed(2),    v=>{cfg.shad=v/100; root.setProperty('--chshadow-op', v/100);});
   bind('rSho',   v=>(v/100).toFixed(1)+'×', v=>cfg.sho=v/100);
-  // atmospheric perspective: soften, desaturate and darken the scene so it recedes
+  // atmospheric haze: mostly desaturate + darken (recede), only a hint of blur
   const applyBgFar = v => { bg.style.filter =
-    `blur(${(v/100*5).toFixed(2)}px) saturate(${(1-v/100*0.45).toFixed(2)}) brightness(${(1-v/100*0.18).toFixed(2)})`; };
+    `blur(${(v/100*2).toFixed(2)}px) saturate(${(1-v/100*0.5).toFixed(2)}) brightness(${(1-v/100*0.2).toFixed(2)})`; };
   bind('rBgf',   v=>v,                     v=>{cfg.bgfar=v; applyBgFar(v);});
+  // recess shadow: the frame casting inward onto the scene = spatial depth (no blur)
+  const applyRecess = v => { const s=v/100;
+    recess.style.boxShadow =
+      `inset 0 0 ${Math.round(10+s*36)}px ${Math.round(4+s*18)}px rgba(10,7,18,${(s*0.62).toFixed(2)}),`+
+      `inset 0 ${Math.round(4+s*10)}px ${Math.round(14+s*30)}px rgba(0,0,0,${(s*0.34).toFixed(2)})`; };
+  bind('rRec',   v=>v,                     v=>{cfg.recess=v; applyRecess(v);});
   bind('rShine', v=>(v/100).toFixed(2),    v=>{cfg.shine=v/100; root.setProperty('--shine-op', v/100);});
   bind('rGlow',  v=>(v/100).toFixed(2), v=>{cfg.glow=v/100; root.setProperty('--glow',v/100);});
   bind('rHolo',  v=>(v/100).toFixed(2), v=>{cfg.holo=v/100; root.setProperty('--holo',v/100);});
@@ -757,6 +778,11 @@
           bg.style.left   = Math.max(0,(wl/w - ov))*100 + '%';
           bg.style.right  = Math.max(0,(1 - wr/w - ov))*100 + '%';
           bg.style.bottom = Math.max(0,(1 - wb/h - ov))*100 + '%';
+          // the recess shadow hugs the exact window opening (no overlap)
+          recess.style.top    = (wt/h)*100 + '%';
+          recess.style.left   = (wl/w)*100 + '%';
+          recess.style.right  = (1 - wr/w)*100 + '%';
+          recess.style.bottom = (1 - wb/h)*100 + '%';
           // banner sits between the window bottom and the card's bottom edge → place title
           let cb=h-1; while(cb>0 && A(cxp,cb)<20) cb--;
           titleBaseY = (wb/h + (cb/h - wb/h)*0.45) * 100;
@@ -788,6 +814,7 @@
   loadInto(charshine, 'shinelayer_character.png'+v);
   loadInto(frame, 'cardframe.png'+v);
   applyBgFar(cfg.bgfar);   // push the scene back on first paint
+  applyRecess(cfg.recess);
 
   /* ---------- presets ---------- */
   const presets = [
