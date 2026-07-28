@@ -445,6 +445,10 @@
   const shadow = document.getElementById('shadow');
   const root   = document.documentElement.style;
 
+  // --- auto-registration state: content boxes of the character & shine art, plus the
+  //     card box dimensions (taken from the frame). Used to place the shine exactly. ---
+  let charImg = null, shineImg = null, boxW = 1050, boxH = 1572;
+
   // config (live-tuned)
   const cfg = {
     tilt:15, pbg:20, pchar:10, cfill:1.00, depth:70,
@@ -613,6 +617,7 @@
       // A custom shine image replaces the bundled luminance mask while keeping
       // the animated light band, character transform, and shine controls intact.
       charshine.style.webkitMaskImage = charshine.style.maskImage = `url("${url}")`;
+      analyze(url).then(i => { if(i){ shineImg=i; alignShine(); } });
       return;
     }
     layer.style.backgroundImage = `url("${url}")`;
@@ -625,7 +630,45 @@
       charshadow.style.backgroundImage = `url("${url}")`;
       charshadow.style.backgroundSize = 'cover';
       charshadow.style.backgroundPosition = 'center';
+      analyze(url).then(i => { if(i){ charImg=i; alignShine(); } });
     }
+  }
+
+  /* Measure an image's non-transparent content box (as fractions of its own size). */
+  function analyze(url){
+    return new Promise(res => {
+      const img = new Image(); img.crossOrigin = 'anonymous';
+      img.onload = () => { try {
+        const w=img.naturalWidth, h=img.naturalHeight;
+        const c=document.createElement('canvas'); c.width=w; c.height=h;
+        const x=c.getContext('2d'); x.drawImage(img,0,0);
+        const d=x.getImageData(0,0,w,h).data;
+        let x0=w,y0=h,x1=-1,y1=-1;
+        for(let y=0;y<h;y++)for(let px=0;px<w;px++){ if(d[(y*w+px)*4+3]>16){
+          if(px<x0)x0=px; if(px>x1)x1=px; if(y<y0)y0=y; if(y>y1)y1=y; } }
+        if(x1<0) res({w,h,fx0:0,fy0:0,fx1:1,fy1:1});
+        else res({w,h, fx0:x0/w, fy0:y0/h, fx1:(x1+1)/w, fy1:(y1+1)/h});
+      } catch(e){ res(null); } };
+      img.onerror = () => res(null);
+      img.src = url;
+    });
+  }
+
+  /* Place the shine layer so its content lands exactly on the character content, matching
+     however the character is displayed (cover into the card box). Works for any card. */
+  function alignShine(){
+    if(!charImg || !shineImg) return;
+    const c=charImg, s=shineImg;
+    const cover=Math.max(boxW/c.w, boxH/c.h);          // character uses background cover
+    const dW=c.w*cover, dH=c.h*cover, ox=(boxW-dW)/2, oy=(boxH-dH)/2;
+    const ccL=(ox+c.fx0*dW)/boxW, ccR=(ox+c.fx1*dW)/boxW;   // character content in box
+    const ccT=(oy+c.fy0*dH)/boxH, ccB=(oy+c.fy1*dH)/boxH;
+    const W=(ccR-ccL)/(s.fx1-s.fx0), H=(ccB-ccT)/(s.fy1-s.fy0);  // shine rect = whole shine img
+    const L=ccL-s.fx0*W, T=ccT-s.fy0*H;
+    charshine.style.left  = (L*100).toFixed(3)+'%';
+    charshine.style.top   = (T*100).toFixed(3)+'%';
+    charshine.style.width = (W*100).toFixed(3)+'%';
+    charshine.style.height= (H*100).toFixed(3)+'%';
   }
 
   /* Build a filled-silhouette mask from the frame's alpha channel, so the scene is
@@ -652,6 +695,24 @@
         clip.style.webkitMaskImage=m; clip.style.maskImage=m;
         clip.style.webkitMaskSize='100% 100%'; clip.style.maskSize='100% 100%';
         clip.style.webkitMaskRepeat='no-repeat'; clip.style.maskRepeat='no-repeat';
+
+        // adapt the whole card to THIS frame: card shape, scene window, and shine box
+        stage.style.aspectRatio = w + ' / ' + h;
+        boxW = w; boxH = h;
+        const A=(px,py)=>d[(py*w+px)*4+3];
+        const cxp=w>>1, cyp=h>>1;
+        let wt=cyp; while(wt>0    && A(cxp,wt)<20) wt--; wt++;   // window opening from centre
+        let wb=cyp; while(wb<h-1  && A(cxp,wb)<20) wb++; wb--;
+        let wl=cxp; while(wl>0    && A(wl,cyp)<20) wl--; wl++;
+        let wr=cxp; while(wr<w-1  && A(wr,cyp)<20) wr++; wr--;
+        if(wr>wl && wb>wt){
+          const ov=0.012;   // tuck the scene slightly under the border
+          bg.style.top    = Math.max(0,(wt/h - ov))*100 + '%';
+          bg.style.left   = Math.max(0,(wl/w - ov))*100 + '%';
+          bg.style.right  = Math.max(0,(1 - wr/w - ov))*100 + '%';
+          bg.style.bottom = Math.max(0,(1 - wb/h - ov))*100 + '%';
+        }
+        alignShine();
       } catch(e){ /* tainted canvas — keep the border-radius fallback */ }
     };
     img.src = url;
