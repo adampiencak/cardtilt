@@ -139,13 +139,13 @@
   }
   .edge-top{
     top:2.8%;
-    background:linear-gradient(to bottom,rgba(12,9,6,.9),rgba(45,34,20,.18));
+    background:linear-gradient(to bottom,rgba(31,23,14,.38),rgba(74,53,29,.08));
     clip-path:polygon(0 0,100% 0,94% 100%,6% 100%);
   }
   .edge-bottom{
     top:91.9%;
     transform:translateY(-100%);
-    background:linear-gradient(to top,rgba(12,9,6,.9),rgba(45,34,20,.18));
+    background:linear-gradient(to top,rgba(31,23,14,.38),rgba(74,53,29,.08));
     clip-path:polygon(6% 0,94% 0,100% 100%,0 100%);
   }
   .edge-left,.edge-right{
@@ -154,13 +154,13 @@
   }
   .edge-left{
     left:5.9%;
-    background:linear-gradient(to right,rgba(12,9,6,.9),rgba(45,34,20,.18));
+    background:linear-gradient(to right,rgba(31,23,14,.38),rgba(74,53,29,.08));
     clip-path:polygon(0 0,100% 7%,100% 93%,0 100%);
   }
   .edge-right{
     left:94.1%;
     transform:translateX(-100%);
-    background:linear-gradient(to left,rgba(12,9,6,.9),rgba(45,34,20,.18));
+    background:linear-gradient(to left,rgba(31,23,14,.38),rgba(74,53,29,.08));
     clip-path:polygon(0 7%,100% 0,100% 100%,0 93%);
   }
 
@@ -607,7 +607,7 @@
     const reveal=Math.min(30,6+cfg.depth*.09);
     const setEdge=(el,size,axis) => {
       el.style[axis]=Math.max(0,size).toFixed(1)+'px';
-      el.style.opacity=Math.min(1,Math.abs(size)/8).toFixed(2);
+      el.style.opacity=Math.min(.34,Math.abs(size)/24).toFixed(2);
     };
     setEdge(edgeLeft, -cx*reveal, 'width');
     setEdge(edgeRight, cx*reveal, 'width');
@@ -615,11 +615,11 @@
     setEdge(edgeBottom, cy*reveal, 'height');
 
     // The front aperture casts a directional shadow across the recessed artwork.
-    const sx = -cx * (3 + cfg.depth*.025);
-    const sy = -cy * (3 + cfg.depth*.025);
+    const sx = -cx * (1.5 + cfg.depth*.012);
+    const sy = -cy * (1.5 + cfg.depth*.012);
     recess.style.boxShadow =
-      `inset ${sx.toFixed(1)}px ${sy.toFixed(1)}px 12px 2px rgba(8,5,3,.32),`+
-      `inset ${(sx*.35).toFixed(1)}px ${(sy*.35).toFixed(1)}px 4px 0 rgba(0,0,0,.22)`;
+      `inset ${sx.toFixed(1)}px ${sy.toFixed(1)}px 10px 0 rgba(31,20,10,.14),`+
+      `inset ${(sx*.3).toFixed(1)}px ${(sy*.3).toFixed(1)}px 3px 0 rgba(20,13,7,.08)`;
 
     shadow.style.transform =
       `translate(${-50 - cx*10}%, ${Math.abs(cy)*4}%) scaleX(${(1-Math.abs(cx)*.12).toFixed(3)})`;
