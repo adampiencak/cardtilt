@@ -28,13 +28,62 @@
     position:relative;
   }
   .stage{
-    perspective: 1300px;
-    perspective-origin:center;
     width:min(62vh, 440px);
     aspect-ratio: 1050 / 1572;
     position:relative;
+    isolation:isolate;
     touch-action:none;
     container-type:inline-size;   /* lets the title scale with the card via cqw */
+  }
+
+  /* Soft tarot aura lives outside the card crop, so the artwork stays crisp. */
+  .cardglow{
+    position:absolute;
+    inset:-15%;
+    z-index:0;
+    pointer-events:none;
+    will-change:transform;
+  }
+  .cardglow::before,
+  .cardglow::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    border-radius:28%;
+  }
+  .cardglow::before{
+    background:
+      radial-gradient(ellipse at 50% 43%,
+        rgba(255,211,122,.5) 0%,
+        rgba(230,157,77,.28) 27%,
+        rgba(143,86,225,.22) 48%,
+        rgba(73,111,214,.1) 62%,
+        transparent 76%);
+    filter:blur(26px);
+    animation:auraBreath 5.5s ease-in-out infinite;
+  }
+  .cardglow::after{
+    inset:10%;
+    background:radial-gradient(ellipse at center,
+      rgba(255,220,145,.32) 0%,
+      rgba(255,174,74,.16) 46%,
+      transparent 72%);
+    filter:blur(18px);
+    opacity:.8;
+  }
+  @keyframes auraBreath{
+    0%,100%{ opacity:.68; transform:scale(.97); }
+    50%{ opacity:1; transform:scale(1.035); }
+  }
+  @media (prefers-reduced-motion:reduce){
+    .cardglow::before{ animation:none; opacity:.82; }
+  }
+
+  /* Perspective lives outside the card so every child plane shares one 3D camera. */
+  .cardcrop{
+    position:absolute; inset:0;
+    z-index:2;
+    perspective:1300px; perspective-origin:center;
   }
 
   /* soft floor shadow that reacts to tilt */
@@ -45,7 +94,7 @@
     transform:translate(-50%,0);
     background:radial-gradient(ellipse at center, rgba(0,0,0,.55), transparent 70%);
     filter:blur(10px);
-    z-index:0;
+    z-index:1;
     transition:opacity .3s;
   }
 
@@ -53,28 +102,66 @@
     position:absolute; inset:0;
     border-radius:18px;
     will-change:transform;
+    transform-style:preserve-3d;
   }
 
-  /* aura / glow behind the whole card (sits OUTSIDE the clip so it can spill) */
-  .aura{
-    position:absolute; inset:-8%;
-    border-radius:26px;
-    background:radial-gradient(ellipse at center,
-      rgba(255,206,110,calc(.55*var(--glow,0.9))) 0%,
-      rgba(150,90,255,calc(.30*var(--glow,0.9))) 40%,
-      transparent 70%);
-    filter:blur(30px);
-    z-index:0;
-    opacity:.9;
-  }
-
-  /* everything that must be cropped to the card silhouette lives in here.
-     overflow:hidden + the card's corner radius = a hard mask in the frame's shape */
+  /* Front-surface elements remain together above the masked artwork. */
   .clip{
     position:absolute; inset:0;
+    transform-style:preserve-3d;
+  }
+  .scene3d{
+    position:absolute; inset:0;
     overflow:hidden;
-    border-radius: 3.1% / 2.05%;
-    z-index:1;
+    clip-path:inset(2.8% 5.9% 8.1% 5.9% round .8%);
+    transform:translateZ(-6px);
+  }
+  .back-plane{
+    position:absolute;
+    top:2.8%; left:5.9%; right:5.9%; bottom:8.1%;
+    overflow:hidden;
+    transform:none;
+    background:#17120b;
+  }
+  .mid-plane{
+    position:absolute; inset:0;
+    transform:none;
+  }
+  .depth-edge{
+    position:absolute;
+    z-index:4;
+    pointer-events:none;
+    opacity:0;
+  }
+  .edge-top,.edge-bottom{
+    left:5.9%; right:5.9%;
+    height:0;
+  }
+  .edge-top{
+    top:2.8%;
+    background:linear-gradient(to bottom,rgba(12,9,6,.9),rgba(45,34,20,.18));
+    clip-path:polygon(0 0,100% 0,94% 100%,6% 100%);
+  }
+  .edge-bottom{
+    top:91.9%;
+    transform:translateY(-100%);
+    background:linear-gradient(to top,rgba(12,9,6,.9),rgba(45,34,20,.18));
+    clip-path:polygon(6% 0,94% 0,100% 100%,0 100%);
+  }
+  .edge-left,.edge-right{
+    top:2.8%; bottom:8.1%;
+    width:0;
+  }
+  .edge-left{
+    left:5.9%;
+    background:linear-gradient(to right,rgba(12,9,6,.9),rgba(45,34,20,.18));
+    clip-path:polygon(0 0,100% 7%,100% 93%,0 100%);
+  }
+  .edge-right{
+    left:94.1%;
+    transform:translateX(-100%);
+    background:linear-gradient(to left,rgba(12,9,6,.9),rgba(45,34,20,.18));
+    clip-path:polygon(0 7%,100% 0,100% 100%,0 93%);
   }
 
   .layer{
@@ -86,164 +173,123 @@
     backface-visibility:hidden;
     will-change:transform;
   }
+  #bg{ background-image:url("cardbackground.png"); }
+  #char, #charshadow{ background-image:url("character.png"); }
+  #frame{ background-image:url("cardframe.png"); }
 
   /* ---- BACK plane: the scene (sky / sun / mountains) ----
      positioned to the frame's real window opening (measured from the frame alpha)
-     with a hair of overlap so it tucks under the border. This reconstructs the exact
-     art the character was sliced from, so the cliff lines up with the scene again. */
+     with a small safety gutter so deep artwork never escapes the silhouette. */
   .layer.bg{
     z-index:1;
-    inset:auto;                     /* clear the .layer inset:0 */
-    top:1.6%; left:4.7%; right:4.8%; bottom:6.9%;
+    inset:0;
     border-radius:0;
+    transform:scale(1.34);
     background:linear-gradient(180deg,#f6bd4d 0%,#e9a43f 46%,#6b7b8c 62%,#47566a 100%);
   }
 
   /* ---- cast shadow: character silhouette dropped onto the scene plane ---- */
   .charshadow{
-    z-index:1;                    /* above the scene, below the character */
+    z-index:2;
     transform-origin:50% 100%;
-    filter:brightness(0) blur(7px);   /* turn the art into a soft black silhouette */
+    filter:brightness(0) blur(6px);
     opacity:var(--chshadow-op,.4);
+    transform:translate(44.8px,44.8px);
     pointer-events:none;
   }
 
   /* ---- MID plane: the character ---- */
   .layer.char{
-    z-index:2;
+    z-index:3;
     transform-origin:50% 100%;   /* grow from the bottom so the ground never lifts */
-    filter:drop-shadow(0 5px 7px rgba(0,0,0,.3));  /* tight contact shadow only */
+    transform:translate(26px,16px);
+    filter:drop-shadow(0 4px 5px rgba(0,0,0,.28));
     pointer-events:none;
   }
 
-  /* recess shadow: the frame casts inward onto the scene so it reads as sunk deep behind
-     the front plane (spatial depth, no blur). Box-shadow is set live from JS. */
-  .recess{
-    position:absolute; z-index:1; pointer-events:none; border-radius:2px;
-  }
-
-  /* ---- specular shine riding on the character's highlights ----
-     the wrapper takes the character's exact transform; the inner rect is registered to
-     the character content and uses the shine map as a LUMINANCE mask, so a moving light
-     band only lights up the bright details (dog, rose, fabric, skin). */
+  /* An organic moving light bloom, clipped by the character highlight map. */
   .charshine-wrap{
-    position:absolute; inset:0; z-index:2;
+    position:absolute;
+    inset:0;
+    z-index:4;
     transform-origin:50% 100%;
     pointer-events:none;
+    will-change:transform;
   }
   .charshine{
     position:absolute;
-    left:9.2%; top:14.3%; width:83.0%; height:75.7%;   /* registered to character content */
-    opacity:var(--shine-op,.7);
-    mix-blend-mode:plus-lighter;
-    -webkit-mask-size:100% 100%; mask-size:100% 100%;
-    -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
-    mask-mode:luminance;
-    background:linear-gradient(115deg,
-      transparent 46.5%,
-      rgba(255,246,218,.55) 49%,
-      #ffffff 50%,
-      rgba(255,246,218,.55) 51%,
-      transparent 53.5%);
-    background-size:320% 320%;
-    background-position:var(--shine-x,50%) var(--shine-y,50%);
+    left:9.2%;
+    top:14.3%;
+    width:83%;
+    height:75.7%;
+    opacity:var(--shine-op,.38);
+    mix-blend-mode:screen;
+    background-image:url("shinelayer_character.png");
+    background-size:100% 100%;
+    background-position:center;
+    background-repeat:no-repeat;
+    -webkit-mask-image:
+      radial-gradient(
+        ellipse 25% 19% at var(--shine-x,50%) var(--shine-y,50%),
+        #000 0 28%, rgba(0,0,0,.82) 48%, rgba(0,0,0,.3) 72%, transparent 100%
+      ),
+      radial-gradient(
+        ellipse 16% 13% at calc(var(--shine-x,50%) - 11%) calc(var(--shine-y,50%) + 8%),
+        rgba(0,0,0,.82) 0 25%, rgba(0,0,0,.38) 62%, transparent 100%
+      ),
+      radial-gradient(
+        ellipse 13% 18% at calc(var(--shine-x,50%) + 13%) calc(var(--shine-y,50%) - 6%),
+        rgba(0,0,0,.72) 0 20%, rgba(0,0,0,.28) 60%, transparent 100%
+      ),
+      radial-gradient(
+        ellipse 8% 7% at calc(var(--shine-x,50%) + 22%) calc(var(--shine-y,50%) + 10%),
+        rgba(0,0,0,.5) 0 18%, transparent 100%
+      );
+    mask-image:
+      radial-gradient(
+        ellipse 25% 19% at var(--shine-x,50%) var(--shine-y,50%),
+        #000 0 28%, rgba(0,0,0,.82) 48%, rgba(0,0,0,.3) 72%, transparent 100%
+      ),
+      radial-gradient(
+        ellipse 16% 13% at calc(var(--shine-x,50%) - 11%) calc(var(--shine-y,50%) + 8%),
+        rgba(0,0,0,.82) 0 25%, rgba(0,0,0,.38) 62%, transparent 100%
+      ),
+      radial-gradient(
+        ellipse 13% 18% at calc(var(--shine-x,50%) + 13%) calc(var(--shine-y,50%) - 6%),
+        rgba(0,0,0,.72) 0 20%, rgba(0,0,0,.28) 60%, transparent 100%
+      ),
+      radial-gradient(
+        ellipse 8% 7% at calc(var(--shine-x,50%) + 22%) calc(var(--shine-y,50%) + 10%),
+        rgba(0,0,0,.5) 0 18%, transparent 100%
+      );
+    -webkit-mask-composite:source-over;
+    mask-composite:add;
+    -webkit-mask-repeat:no-repeat;
+    mask-repeat:no-repeat;
+  }
+
+  /* The aperture shadow stays near the front surface, but its direction follows the tilt. */
+  .recess{
+    position:absolute;
+    z-index:5;
+    pointer-events:none;
+    border-radius:2px;
+    transform:translateZ(-1px);
   }
 
   /* ---- FRONT plane: the ornate frame + title ---- */
   .layer.frame{
-    z-index:3;
-    /* the frame's inner edge casts a soft shadow inward onto the character */
-    filter:drop-shadow(0 3px 6px rgba(0,0,0,.35));
+    z-index:6;
+    transform:translateZ(0);
     pointer-events:none;
-  }
-
-  /* placeholder hint text (only before assets load) */
-  .layer.slot-empty::after{
-    content:attr(data-label);
-    white-space:pre; text-align:center;
-    position:absolute; inset:0;
-    display:flex; align-items:center; justify-content:center;
-    font-size:11px; letter-spacing:.12em; font-weight:700;
-    color:rgba(255,255,255,.5);
-  }
-  .layer.loaded::after{ content:none; }
-
-  /* holographic sheen (the "shader" look, CSS-driven) — over everything */
-  .holo{
-    position:absolute; inset:0;
-    border-radius:14px;
-    z-index:4;
-    pointer-events:none;
-    mix-blend-mode:color-dodge;
-    opacity:var(--holo,0.45);
-    background:
-      linear-gradient(115deg,
-        transparent 22%,
-        rgba(255,90,180,.5) 37%,
-        rgba(120,200,255,.5) 45%,
-        rgba(140,255,180,.5) 52%,
-        rgba(255,220,120,.5) 60%,
-        transparent 74%);
-    background-size:220% 220%;
-    background-position: var(--holo-x,50%) var(--holo-y,50%);
-    filter:saturate(1.4) contrast(1.05);
-  }
-  .holo::after{
-    content:""; position:absolute; inset:0; border-radius:14px;
-    background:repeating-linear-gradient(90deg,
-      rgba(255,255,255,.05) 0 2px, transparent 2px 5px);
-    mix-blend-mode:overlay; opacity:.5;
-  }
-
-  /* moving specular glare */
-  .glare{
-    position:absolute; inset:0;
-    border-radius:14px;
-    z-index:5;
-    pointer-events:none;
-    mix-blend-mode:soft-light;
-    opacity:var(--glare,0.5);
-    background:radial-gradient(circle at var(--glare-x,50%) var(--glare-y,50%),
-      rgba(255,255,255,.9) 0%, rgba(255,255,255,.15) 18%, transparent 45%);
-  }
-
-  /* rim shading */
-  .rim{
-    position:absolute; inset:0; border-radius:20px; z-index:6;
-    pointer-events:none;
-    box-shadow: inset 0 18px 40px rgba(255,255,255,.06),
-                inset 0 -30px 60px rgba(0,0,0,.25);
-  }
-
-  #sparkles{
-    position:absolute; inset:0; z-index:7; border-radius:14px;
-    pointer-events:none;
-  }
-
-  /* glowing line hugging the frame's inner border (the window opening), gently pulsing */
-  .frameglow{
-    position:absolute;
-    top:2.5%; left:5.6%; right:5.7%; bottom:7.7%;
-    border-radius:1.8% / 1.2%;
-    z-index:8; pointer-events:none;
-    border:2px solid rgba(255,226,150, calc(.95 * var(--glowline-op,.9)));
-    box-shadow:
-      0 0 7px 1px  rgba(255,205,110, calc(.90 * var(--glowline-op,.9))),
-      0 0 16px 3px rgba(255,180,80,  calc(.55 * var(--glowline-op,.9))),
-      inset 0 0 9px 1px rgba(255,220,140, calc(.50 * var(--glowline-op,.9)));
-    animation:borderPulse 3s ease-in-out infinite;
-  }
-  @keyframes borderPulse{
-    0%,100%{ opacity:.6; }
-    50%    { opacity:1; }
   }
 
   /* code-rendered card title, sitting on the frame's (now blank) banner */
   .cardtitle{
     position:absolute; left:0; right:0;
     top:var(--title-y, 95.6%);
-    transform:translateY(-50%);
-    z-index:9; pointer-events:none;
+    transform:translate3d(0,-50%,1px);
+    z-index:7; pointer-events:none;
     text-align:center; white-space:nowrap;
     font-family:"Iowan Old Style","Palatino Linotype","Book Antiqua",Georgia,"Times New Roman",serif;
     font-weight:600; text-transform:uppercase;
@@ -302,40 +348,50 @@
   button.act:hover{ border-color:#ffce6e; color:#ffce6e; }
   .hint{ font-size:10px; color:#7d7398; line-height:1.5; margin-top:auto; }
   .divider{ height:1px; background:rgba(255,255,255,.08); }
+
 </style>
 </head>
 <body>
   <div class="stage-wrap">
     <div class="stage" id="stage">
+      <div class="cardglow" id="cardglow"></div>
       <div class="shadow" id="shadow"></div>
+      <div class="cardcrop" id="cardcrop">
       <div class="card" id="card">
-        <div class="aura"></div>
-        <div class="clip">
-          <div class="layer bg slot-empty"    id="bg"    data-label="SCENE\A(back)"></div>
-          <div class="recess" id="recess"></div>
-          <div class="layer charshadow"       id="charshadow"></div>
-          <div class="layer char slot-empty"  id="char"  data-label="CHARACTER"></div>
-          <div class="charshine-wrap" id="charshineWrap"><div class="charshine" id="charshine"></div></div>
-          <div class="layer frame slot-empty" id="frame" data-label="FRAME"></div>
-          <div class="cardtitle" id="cardtitle"><span class="dot">✦</span><span id="titletext">THE FOOL</span><span class="dot">✦</span></div>
-          <div class="holo" id="holo"></div>
-          <div class="glare" id="glare"></div>
-          <div class="rim"></div>
-          <canvas id="sparkles"></canvas>
-          <div class="frameglow" id="frameglow"></div>
+        <div class="scene3d" id="scene3d">
+          <div class="back-plane" id="backPlane">
+            <div class="layer bg" id="bg"></div>
+          </div>
+          <div class="layer charshadow" id="charshadow"></div>
+          <div class="mid-plane" id="midPlane">
+            <div class="layer char" id="char"></div>
+            <div class="charshine-wrap" id="charshineWrap">
+              <div class="charshine" id="charshine"></div>
+            </div>
+          </div>
         </div>
+        <div class="clip">
+          <div class="depth-edge edge-top"></div>
+          <div class="depth-edge edge-bottom"></div>
+          <div class="depth-edge edge-left"></div>
+          <div class="depth-edge edge-right"></div>
+          <div class="recess" id="recess"></div>
+          <div class="layer frame"            id="frame"></div>
+          <div class="cardtitle" id="cardtitle"><span class="dot">✦</span><span id="titletext">THE FOOL</span><span class="dot">✦</span></div>
+        </div>
+      </div>
       </div>
     </div>
   </div>
 
   <aside class="panel">
     <h1>✦ Card Tilt Lab</h1>
-    <p class="sub">Four layers: frame (front) · shine · character (mid) · scene (back). Move your cursor over the card.</p>
+    <p class="sub">Frame (front) · character + shine (mid) · scene (back). Move your cursor over the card.</p>
 
     <div class="slots">
       <div class="slot" id="slotBg">▤<br>Scene<small>back</small></div>
       <div class="slot" id="slotChar">☺<br>Character<small>mid</small></div>
-      <div class="slot" id="slotShine">✦<br>Shine<small>optional</small></div>
+      <div class="slot" id="slotShine">✦<br>Shine<small>character</small></div>
       <div class="slot" id="slotFrame">▢<br>Frame<small>front</small></div>
     </div>
     <input type="file" id="fileBg" accept="image/*" hidden>
@@ -363,15 +419,15 @@
       <input type="range" id="rTilt" min="0" max="30" value="15">
     </div>
 
-    <p class="grouplabel">Parallax per plane (px) · frame is locked to the crop</p>
+    <p class="grouplabel">Depth &amp; pushback · frame is fixed</p>
     <div class="row">
       <div class="ctrl">
-        <label>Scene (back) <b id="vPbg">20</b></label>
-        <input type="range" id="rPbg" min="0" max="70" value="20">
+        <label>Scene depth <b id="vDepth">180</b></label>
+        <input type="range" id="rDepth" min="20" max="260" value="180">
       </div>
       <div class="ctrl">
-        <label>Character (mid) <b id="vPcm">10</b></label>
-        <input type="range" id="rPcm" min="0" max="50" value="10">
+        <label>Character depth <b id="vCdepth">60</b></label>
+        <input type="range" id="rCdepth" min="4" max="110" value="60">
       </div>
     </div>
     <div class="row">
@@ -380,18 +436,8 @@
         <input type="range" id="rPch" min="100" max="118" value="100">
       </div>
       <div class="ctrl">
-        <label>Depth separation <b id="vDepth">70</b></label>
-        <input type="range" id="rDepth" min="0" max="140" value="70">
-      </div>
-    </div>
-    <div class="row">
-      <div class="ctrl">
-        <label>Background recess (depth) <b id="vRec">55</b></label>
-        <input type="range" id="rRec" min="0" max="100" value="55">
-      </div>
-      <div class="ctrl">
-        <label>Background haze <b id="vBgf">40</b></label>
-        <input type="range" id="rBgf" min="0" max="100" value="40">
+        <label>Background fill <b id="vBgfill">1.34×</b></label>
+        <input type="range" id="rBgfill" min="100" max="160" value="134">
       </div>
     </div>
 
@@ -407,21 +453,7 @@
       </div>
     </div>
 
-    <p class="grouplabel">Light &amp; shader</p>
-    <div class="row">
-      <div class="ctrl">
-        <label>Glow <b id="vGlow">0.90</b></label>
-        <input type="range" id="rGlow" min="0" max="150" value="90">
-      </div>
-      <div class="ctrl">
-        <label>Holo <b id="vHolo">0.45</b></label>
-        <input type="range" id="rHolo" min="0" max="100" value="45">
-      </div>
-      <div class="ctrl">
-        <label>Glare <b id="vGlare">0.50</b></label>
-        <input type="range" id="rGlare" min="0" max="100" value="50">
-      </div>
-    </div>
+    <p class="grouplabel">Motion</p>
     <div class="row">
       <div class="ctrl">
         <label>Smoothing (easing) <b id="vEase">0.12</b></label>
@@ -445,30 +477,16 @@
       </div>
     </div>
 
-    <p class="grouplabel">Character shine (specular)</p>
+    <p class="grouplabel">Character shine</p>
     <div class="ctrl">
-      <label>Shine strength <b id="vShine">0.70</b></label>
-      <input type="range" id="rShine" min="0" max="150" value="70">
-    </div>
-
-    <p class="grouplabel">Border line glow</p>
-    <div class="row">
-      <div class="ctrl">
-        <label>Pulse speed <b id="vGls">3.0s</b></label>
-        <input type="range" id="rGls" min="10" max="80" value="30">
-      </div>
-      <div class="ctrl">
-        <label>Glow <b id="vGlo">0.90</b></label>
-        <input type="range" id="rGlo" min="0" max="150" value="90">
-      </div>
+      <label>Shine strength <b id="vShine">0.38</b></label>
+      <input type="range" id="rShine" min="0" max="125" value="38">
     </div>
 
     <div class="toggles">
       <div class="toggle on" id="tFloat">Idle float</div>
-      <div class="toggle on" id="tSparkle">Sparkles</div>
       <div class="toggle on" id="tShadow">Char shadow</div>
       <div class="toggle on" id="tShine">Char shine</div>
-      <div class="toggle on" id="tGlowline">Border glow</div>
       <div class="toggle on" id="tGyro">Gyro</div>
     </div>
 
@@ -477,14 +495,19 @@
       <button class="act" id="btnExport">Copy CSS values</button>
     </div>
 
-    <p class="hint">Four-layer split (scene / character / shine / frame): the frame stays put like a window and defines the crop, the shine follows the character, and the scene drifts deep behind. The bundled shine remains the default until you upload your own.</p>
+    <p class="hint">The shine image is registered to the character automatically and acts as a crisp moving highlight mask. The frame still owns the fixed aperture.</p>
   </aside>
 
 <script>
 (() => {
   const stage = document.getElementById('stage');
   const card  = document.getElementById('card');
-  const clip   = document.querySelector('.clip');
+  const scene3d = document.getElementById('scene3d');
+  const backPlane = document.getElementById('backPlane');
+  const edgeTop = document.querySelector('.edge-top');
+  const edgeBottom = document.querySelector('.edge-bottom');
+  const edgeLeft = document.querySelector('.edge-left');
+  const edgeRight = document.querySelector('.edge-right');
   const bg     = document.getElementById('bg');
   const recess = document.getElementById('recess');
   const charL  = document.getElementById('char');
@@ -492,30 +515,37 @@
   const charshineWrap = document.getElementById('charshineWrap');
   const charshine = document.getElementById('charshine');
   const frame  = document.getElementById('frame');
-  const frameglow = document.getElementById('frameglow');
+  const cardglow = document.getElementById('cardglow');
   const shadow = document.getElementById('shadow');
   const root   = document.documentElement.style;
 
-  // --- auto-registration state: content boxes of the character & shine art, plus the
-  //     card box dimensions (taken from the frame). Used to place the shine exactly. ---
-  let charImg = null, shineImg = null, boxW = 1050, boxH = 1572;
   const cardtitle = document.getElementById('cardtitle');
   const titletext = document.getElementById('titletext');
-  let titleBaseY = 95.6;   // banner centre (%), re-derived from each frame
+  let titleBaseY = 95.6;
   const updateTitlePos = () => root.setProperty('--title-y', (titleBaseY + (cfg.titleY||0)) + '%');
 
-  // config (live-tuned)
   const cfg = {
-    tilt:15, pbg:20, pchar:10, cfill:1.00, depth:70,
-    coffx:26, coffy:16,   // character resting offset (px, +right / +down)
-    shad:0.40, sho:1.0,   // cast-shadow strength + offset multiplier
-    bgfar:40,             // background distance: haze + desaturation (light blur)
-    recess:55,            // recess shadow depth — how sunk-in the scene reads
-    shine:0.70,           // character specular shine strength
-    charshine:true,
-    glow:0.9, holo:0.45, glare:0.5, ease:0.12, idle:1.6, titleY:0,
-    float:true, sparkle:true, gyro:true, glowline:true, chshadow:true
+    tilt:15,
+    depth:180,
+    charDepth:60,
+    bgfill:1.34,
+    cfill:1,
+    coffx:26,
+    coffy:16,
+    shad:.4,
+    sho:1,
+    shine:.38,
+    ease:.12,
+    idle:1.6,
+    titleY:0,
+    float:true,
+    gyro:true,
+    chshadow:true,
+    charshine:true
   };
+
+  // Transparent content bounds let differently cropped shine maps stay registered.
+  let charImg=null, shineImg=null, boxW=1050, boxH=1572;
 
   // pointer target + current (for smooth lerp)
   let tx=0, ty=0, cx=0, cy=0, hovering=false;
@@ -553,75 +583,51 @@
     const rotY =  cx * cfg.tilt;
     const rotX = -cy * cfg.tilt;
     card.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg)`;
+    cardglow.style.transform =
+      `translate(${-cx*8}px, ${-cy*6}px) scale(${(1+Math.abs(cx)*.025).toFixed(3)})`;
 
-    const d = cfg.depth;
-    // BACK: scene slides for parallax; modest overscale (kept small so it stays in register
-    // with the character's cliff) gives just enough headroom to hide its edges as it moves
+    // The frame owns a fixed mask. Strongly separated motion plus a directional
+    // one-sided reveal makes the recess legible without allowing projected leaks.
+    const bgShiftX=-cx*cfg.depth*.28, bgShiftY=-cy*cfg.depth*.28;
+    const charShiftX=-cx*cfg.charDepth*.32, charShiftY=-cy*cfg.charDepth*.32;
     bg.style.transform =
-      `translate(${-cx*cfg.pbg}px, ${-cy*cfg.pbg}px) scale(${1.06 + d/1400})`;
-    // MID: character parallaxes for depth — but LESS than the scene so it reads as sitting
-    // in front of it. A resting offset (coffx/coffy) places the figure toward a corner;
-    // cfill overscales it up from the base to keep the foreground covered.
+      `translate(${bgShiftX}px, ${bgShiftY}px) scale(${cfg.bgfill})`;
     charL.style.transform =
-      `translate(${cfg.coffx - cx*cfg.pchar}px, ${cfg.coffy - cy*cfg.pchar}px) scale(${cfg.cfill})`;
-    // CAST SHADOW: same silhouette, offset by the light direction, but parallaxing with the
-    // SCENE (pbg) — since the scene moves more than the character, the shadow slides out from
-    // under the figure on tilt, reading as the character floating above the background.
-    const lx = cfg.depth*0.10*cfg.sho, ly = cfg.depth*0.20*cfg.sho;
+      `translate(${cfg.coffx+charShiftX}px, ${cfg.coffy+charShiftY}px) scale(${cfg.cfill})`;
+    charshineWrap.style.transform=charL.style.transform;
+    root.setProperty('--shine-x',(50+cx*72)+'%');
+    root.setProperty('--shine-y',(50+cy*58)+'%');
+
+    // The cast shadow is projected onto the scene plane.
+    const lx = (8 + cfg.charDepth*.18)*cfg.sho;
+    const ly = (12 + cfg.charDepth*.28)*cfg.sho;
     charshadow.style.transform =
-      `translate(${cfg.coffx + lx - cx*cfg.pbg}px, ${cfg.coffy + ly - cy*cfg.pbg}px) scale(${cfg.cfill})`;
-    // SHINE: rides with the character; the light band sweeps across its highlights on tilt
-    charshineWrap.style.transform = charL.style.transform;
-    root.setProperty('--shine-x', (50 + cx*70) + '%');
-    root.setProperty('--shine-y', (50 + cy*70) + '%');
-    // FRONT: frame is locked — it defines the crop, so it must never move relative to the mask
-    frame.style.transform = 'translate(0,0)';
+      `translate(${cfg.coffx+lx+bgShiftX}px, ${cfg.coffy+ly+bgShiftY}px) scale(${cfg.cfill})`;
 
-    root.setProperty('--holo-x', (50 + cx*55) + '%');
-    root.setProperty('--holo-y', (50 + cy*55) + '%');
-    root.setProperty('--glare-x', (50 - cx*45) + '%');
-    root.setProperty('--glare-y', (50 - cy*45) + '%');
+    const reveal=Math.min(30,6+cfg.depth*.09);
+    const setEdge=(el,size,axis) => {
+      el.style[axis]=Math.max(0,size).toFixed(1)+'px';
+      el.style.opacity=Math.min(1,Math.abs(size)/8).toFixed(2);
+    };
+    setEdge(edgeLeft, -cx*reveal, 'width');
+    setEdge(edgeRight, cx*reveal, 'width');
+    setEdge(edgeTop, -cy*reveal, 'height');
+    setEdge(edgeBottom, cy*reveal, 'height');
 
-    shadow.style.transform = `translate(${-50 - cx*10}%, ${Math.abs(cy)*4}%)`;
-    shadow.style.opacity = 0.5 + Math.abs(cx)*0.2;
+    // The front aperture casts a directional shadow across the recessed artwork.
+    const sx = -cx * (3 + cfg.depth*.025);
+    const sy = -cy * (3 + cfg.depth*.025);
+    recess.style.boxShadow =
+      `inset ${sx.toFixed(1)}px ${sy.toFixed(1)}px 12px 2px rgba(8,5,3,.32),`+
+      `inset ${(sx*.35).toFixed(1)}px ${(sy*.35).toFixed(1)}px 4px 0 rgba(0,0,0,.22)`;
 
-    if(cfg.sparkle) drawSparkles(dt, cx, cy);
+    shadow.style.transform =
+      `translate(${-50 - cx*10}%, ${Math.abs(cy)*4}%) scaleX(${(1-Math.abs(cx)*.12).toFixed(3)})`;
+    shadow.style.opacity = 0.46 + Math.abs(cx)*0.2;
+
     requestAnimationFrame(loop);
   }
   requestAnimationFrame(loop);
-
-  /* ---------- sparkles ---------- */
-  const cv = document.getElementById('sparkles');
-  const ctx = cv.getContext('2d');
-  let stars = [];
-  function initStars(){
-    const r = card.getBoundingClientRect();
-    cv.width = r.width; cv.height = r.height;
-    stars = Array.from({length:26}, () => ({
-      x:Math.random(), y:Math.random(),
-      s:Math.random()*1.6+0.4, p:Math.random()*Math.PI*2, sp:Math.random()*2+1
-    }));
-  }
-  window.addEventListener('resize', initStars);
-  setTimeout(initStars, 60);
-  function drawSparkles(dt, cx, cy){
-    if(!cv.width) return;
-    ctx.clearRect(0,0,cv.width,cv.height);
-    for(const st of stars){
-      const tw = (Math.sin(dt/500*st.sp + st.p)+1)/2;
-      const a = tw*0.9*cfg.holo;
-      if(a<0.05) continue;
-      const x = st.x*cv.width  - cx*st.s*8;
-      const y = st.y*cv.height - cy*st.s*8;
-      ctx.globalAlpha = a;
-      ctx.fillStyle = '#fff6d8';
-      const sz = st.s*(1+tw);
-      ctx.beginPath();
-      ctx.moveTo(x, y-sz*3); ctx.lineTo(x+sz, y); ctx.lineTo(x, y+sz*3); ctx.lineTo(x-sz, y);
-      ctx.closePath(); ctx.fill();
-    }
-    ctx.globalAlpha = 1;
-  }
 
   /* ---------- controls ---------- */
   const bind = (id, fmt, apply) => {
@@ -633,30 +639,15 @@
     });
   };
   bind('rTilt',  v=>v+'°',            v=>cfg.tilt=v);
-  bind('rPbg',   v=>v,                    v=>cfg.pbg=v);
-  bind('rPcm',   v=>v,                    v=>cfg.pchar=v);
   bind('rPch',   v=>(v/100).toFixed(2)+'×', v=>cfg.cfill=v/100);
   bind('rDepth', v=>v,                    v=>cfg.depth=v);
+  bind('rCdepth',v=>v,                    v=>cfg.charDepth=v);
+  bind('rBgfill',v=>(v/100).toFixed(2)+'×',v=>cfg.bgfill=v/100);
   bind('rCox',   v=>v,                    v=>cfg.coffx=v);
   bind('rCoy',   v=>v,                    v=>cfg.coffy=v);
-  bind('rGls',   v=>(v/10).toFixed(1)+'s', v=>frameglow.style.animationDuration=(v/10)+'s');
-  bind('rGlo',   v=>(v/100).toFixed(2),    v=>root.setProperty('--glowline-op', v/100));
   bind('rShad',  v=>(v/100).toFixed(2),    v=>{cfg.shad=v/100; root.setProperty('--chshadow-op', v/100);});
   bind('rSho',   v=>(v/100).toFixed(1)+'×', v=>cfg.sho=v/100);
-  // atmospheric haze: mostly desaturate + darken (recede), only a hint of blur
-  const applyBgFar = v => { bg.style.filter =
-    `blur(${(v/100*2).toFixed(2)}px) saturate(${(1-v/100*0.5).toFixed(2)}) brightness(${(1-v/100*0.2).toFixed(2)})`; };
-  bind('rBgf',   v=>v,                     v=>{cfg.bgfar=v; applyBgFar(v);});
-  // recess shadow: the frame casting inward onto the scene = spatial depth (no blur)
-  const applyRecess = v => { const s=v/100;
-    recess.style.boxShadow =
-      `inset 0 0 ${Math.round(10+s*36)}px ${Math.round(4+s*18)}px rgba(10,7,18,${(s*0.62).toFixed(2)}),`+
-      `inset 0 ${Math.round(4+s*10)}px ${Math.round(14+s*30)}px rgba(0,0,0,${(s*0.34).toFixed(2)})`; };
-  bind('rRec',   v=>v,                     v=>{cfg.recess=v; applyRecess(v);});
-  bind('rShine', v=>(v/100).toFixed(2),    v=>{cfg.shine=v/100; root.setProperty('--shine-op', v/100);});
-  bind('rGlow',  v=>(v/100).toFixed(2), v=>{cfg.glow=v/100; root.setProperty('--glow',v/100);});
-  bind('rHolo',  v=>(v/100).toFixed(2), v=>{cfg.holo=v/100; root.setProperty('--holo',v/100);});
-  bind('rGlare', v=>(v/100).toFixed(2), v=>{cfg.glare=v/100; root.setProperty('--glare',v/100);});
+  bind('rShine', v=>(v/100).toFixed(2),    v=>{cfg.shine=v/100; root.setProperty('--shine-op',v/100);});
   bind('rEase',  v=>(v/100).toFixed(2), v=>{cfg.ease=v/100;});
   bind('rIdle',  v=>(v/100).toFixed(1)+'×', v=>{cfg.idle=v/100;});
   bind('rTsz',   v=>(v/100).toFixed(2)+'×', v=>root.setProperty('--title-scale', v/100));
@@ -669,103 +660,96 @@
     const el = document.getElementById(id);
     el.addEventListener('click', () => {
       cfg[key]=!cfg[key]; el.classList.toggle('on', cfg[key]);
-      if(key==='sparkle' && !cfg.sparkle) ctx.clearRect(0,0,cv.width,cv.height);
-      if(key==='glowline') frameglow.style.display = cfg.glowline ? '' : 'none';
       if(key==='chshadow') charshadow.style.display = cfg.chshadow ? '' : 'none';
       if(key==='charshine') charshineWrap.style.display = cfg.charshine ? '' : 'none';
     });
   };
-  toggle('tFloat','float'); toggle('tSparkle','sparkle'); toggle('tShadow','chshadow');
-  toggle('tShine','charshine'); toggle('tGlowline','glowline'); toggle('tGyro','gyro');
+  toggle('tFloat','float');
+  toggle('tShadow','chshadow');
+  toggle('tShine','charshine');
+  toggle('tGyro','gyro');
 
   /* ---------- asset loading ---------- */
   function loadInto(layer, url){
-    if(layer === charshine){
-      // A custom shine image replaces the bundled luminance mask while keeping
-      // the animated light band, character transform, and shine controls intact.
-      charshine.style.webkitMaskImage = charshine.style.maskImage = `url("${url}")`;
-      analyze(url).then(i => { if(i){ shineImg=i; alignShine(); } });
+    if(layer===charshine){
+      charshine.style.backgroundImage=`url("${url}")`;
+      charshine.style.backgroundSize='100% 100%';
+      charshine.style.backgroundPosition='center';
+      analyze(url).then(info=>{ if(info){ shineImg=info; alignShine(); } });
       return;
     }
     layer.style.backgroundImage = `url("${url}")`;
     layer.style.backgroundSize = 'cover';
     layer.style.backgroundPosition = 'center';
-    layer.classList.add('loaded');
-    layer.classList.remove('slot-empty');
-    if(layer === frame) buildMask(url);  // the frame's filled shape defines the crop
-    if(layer === charL){                 // mirror the character art into its cast shadow
+    if(layer === frame){
+      measureFrame(url);
+    }
+    if(layer === charL){
       charshadow.style.backgroundImage = `url("${url}")`;
       charshadow.style.backgroundSize = 'cover';
       charshadow.style.backgroundPosition = 'center';
-      analyze(url).then(i => { if(i){ charImg=i; alignShine(); } });
+      analyze(url).then(info=>{ if(info){ charImg=info; alignShine(); } });
     }
   }
 
-  /* Measure an image's non-transparent content box (as fractions of its own size). */
   function analyze(url){
-    return new Promise(res => {
-      const img = new Image(); img.crossOrigin = 'anonymous';
-      img.onload = () => { try {
-        const w=img.naturalWidth, h=img.naturalHeight;
-        const c=document.createElement('canvas'); c.width=w; c.height=h;
-        const x=c.getContext('2d'); x.drawImage(img,0,0);
-        const d=x.getImageData(0,0,w,h).data;
-        let x0=w,y0=h,x1=-1,y1=-1;
-        for(let y=0;y<h;y++)for(let px=0;px<w;px++){ if(d[(y*w+px)*4+3]>16){
-          if(px<x0)x0=px; if(px>x1)x1=px; if(y<y0)y0=y; if(y>y1)y1=y; } }
-        if(x1<0) res({w,h,fx0:0,fy0:0,fx1:1,fy1:1});
-        else res({w,h, fx0:x0/w, fy0:y0/h, fx1:(x1+1)/w, fy1:(y1+1)/h});
-      } catch(e){ res(null); } };
-      img.onerror = () => res(null);
-      img.src = url;
+    return new Promise(resolve=>{
+      const img=new Image();
+      img.crossOrigin='anonymous';
+      img.onload=()=>{
+        try{
+          const w=img.naturalWidth,h=img.naturalHeight;
+          const canvas=document.createElement('canvas');
+          canvas.width=w; canvas.height=h;
+          const ctx=canvas.getContext('2d');
+          ctx.drawImage(img,0,0);
+          const data=ctx.getImageData(0,0,w,h).data;
+          let x0=w,y0=h,x1=-1,y1=-1;
+          for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+            if(data[(y*w+x)*4+3]>16){
+              if(x<x0)x0=x; if(x>x1)x1=x;
+              if(y<y0)y0=y; if(y>y1)y1=y;
+            }
+          }
+          resolve(x1<0
+            ? {w,h,image:img,fx0:0,fy0:0,fx1:1,fy1:1}
+            : {w,h,image:img,fx0:x0/w,fy0:y0/h,fx1:(x1+1)/w,fy1:(y1+1)/h});
+        }catch(e){ resolve(null); }
+      };
+      img.onerror=()=>resolve(null);
+      img.src=url;
     });
   }
 
-  /* Place the shine layer so its content lands exactly on the character content, matching
-     however the character is displayed (cover into the card box). Works for any card. */
   function alignShine(){
     if(!charImg || !shineImg) return;
-    const c=charImg, s=shineImg;
-    const cover=Math.max(boxW/c.w, boxH/c.h);          // character uses background cover
-    const dW=c.w*cover, dH=c.h*cover, ox=(boxW-dW)/2, oy=(boxH-dH)/2;
-    const ccL=(ox+c.fx0*dW)/boxW, ccR=(ox+c.fx1*dW)/boxW;   // character content in box
-    const ccT=(oy+c.fy0*dH)/boxH, ccB=(oy+c.fy1*dH)/boxH;
-    const W=(ccR-ccL)/(s.fx1-s.fx0), H=(ccB-ccT)/(s.fy1-s.fy0);  // shine rect = whole shine img
-    const L=ccL-s.fx0*W, T=ccT-s.fy0*H;
-    charshine.style.left  = (L*100).toFixed(3)+'%';
-    charshine.style.top   = (T*100).toFixed(3)+'%';
-    charshine.style.width = (W*100).toFixed(3)+'%';
-    charshine.style.height= (H*100).toFixed(3)+'%';
+    const c=charImg,s=shineImg;
+    const cover=Math.max(boxW/c.w,boxH/c.h);
+    const dw=c.w*cover,dh=c.h*cover;
+    const ox=(boxW-dw)/2,oy=(boxH-dh)/2;
+    const left=(ox+c.fx0*dw)/boxW;
+    const right=(ox+c.fx1*dw)/boxW;
+    const top=(oy+c.fy0*dh)/boxH;
+    const bottom=(oy+c.fy1*dh)/boxH;
+    const width=(right-left)/(s.fx1-s.fx0);
+    const height=(bottom-top)/(s.fy1-s.fy0);
+    charshine.style.left=((left-s.fx0*width)*100).toFixed(3)+'%';
+    charshine.style.top=((top-s.fy0*height)*100).toFixed(3)+'%';
+    charshine.style.width=(width*100).toFixed(3)+'%';
+    charshine.style.height=(height*100).toFixed(3)+'%';
   }
 
-  /* Build a filled-silhouette mask from the frame's alpha channel, so the scene is
-     cropped to the EXACT card shape (not a rounded-rect approximation). Falls back
-     silently to the CSS border-radius clip if the canvas is tainted (e.g. file://). */
-  function buildMask(url){
+  /* Measure the frame's transparent opening and use it as the artwork mask. */
+  function measureFrame(url){
     const img = new Image(); img.crossOrigin = 'anonymous';
     img.onload = () => {
       try {
         const w=img.naturalWidth, h=img.naturalHeight;
+        boxW=w; boxH=h;
         const c=document.createElement('canvas'); c.width=w; c.height=h;
         const x=c.getContext('2d'); x.drawImage(img,0,0);
         const d=x.getImageData(0,0,w,h).data;
-        const out=x.createImageData(w,h), o=out.data;
-        for(let y=0;y<h;y++){
-          let L=-1,R=-1;
-          for(let px=0;px<w;px++){ if(d[(y*w+px)*4+3]>20){ L=px; break; } }
-          if(L<0) continue;
-          for(let px=w-1;px>=0;px--){ if(d[(y*w+px)*4+3]>20){ R=px; break; } }
-          for(let px=L;px<=R;px++){ const i=(y*w+px)*4; o[i]=o[i+1]=o[i+2]=255; o[i+3]=255; }
-        }
-        x.putImageData(out,0,0);
-        const m=`url(${c.toDataURL()})`;
-        clip.style.webkitMaskImage=m; clip.style.maskImage=m;
-        clip.style.webkitMaskSize='100% 100%'; clip.style.maskSize='100% 100%';
-        clip.style.webkitMaskRepeat='no-repeat'; clip.style.maskRepeat='no-repeat';
-
-        // adapt the whole card to THIS frame: card shape, scene window, and shine box
         stage.style.aspectRatio = w + ' / ' + h;
-        boxW = w; boxH = h;
         const A=(px,py)=>d[(py*w+px)*4+3];
         const cxp=w>>1, cyp=h>>1;
         let wt=cyp; while(wt>0    && A(cxp,wt)<20) wt--; wt++;   // window opening from centre
@@ -773,23 +757,28 @@
         let wl=cxp; while(wl>0    && A(wl,cyp)<20) wl--; wl++;
         let wr=cxp; while(wr<w-1  && A(wr,cyp)<20) wr++; wr--;
         if(wr>wl && wb>wt){
-          const ov=0.012;   // tuck the scene slightly under the border
-          bg.style.top    = Math.max(0,(wt/h - ov))*100 + '%';
-          bg.style.left   = Math.max(0,(wl/w - ov))*100 + '%';
-          bg.style.right  = Math.max(0,(1 - wr/w - ov))*100 + '%';
-          bg.style.bottom = Math.max(0,(1 - wb/h - ov))*100 + '%';
-          // the recess shadow hugs the exact window opening (no overlap)
-          recess.style.top    = (wt/h)*100 + '%';
-          recess.style.left   = (wl/w)*100 + '%';
-          recess.style.right  = (1 - wr/w)*100 + '%';
-          recess.style.bottom = (1 - wb/h)*100 + '%';
+          const top=(wt/h)*100, left=(wl/w)*100;
+          const right=(1-wr/w)*100, bottom=(1-wb/h)*100;
+          const aperture =
+            `inset(${top}% ${right}% ${bottom}% ${left}% round .8%)`;
+          scene3d.style.clipPath=aperture;
+          backPlane.style.top=top+'%'; backPlane.style.left=left+'%';
+          backPlane.style.right=right+'%'; backPlane.style.bottom=bottom+'%';
+          recess.style.top=top+'%'; recess.style.left=left+'%';
+          recess.style.right=right+'%'; recess.style.bottom=bottom+'%';
+          edgeTop.style.top=top+'%'; edgeBottom.style.top=(wb/h*100)+'%';
+          edgeTop.style.left=edgeBottom.style.left=left+'%';
+          edgeTop.style.right=edgeBottom.style.right=right+'%';
+          edgeLeft.style.left=left+'%'; edgeRight.style.left=(wr/w*100)+'%';
+          edgeLeft.style.top=edgeRight.style.top=top+'%';
+          edgeLeft.style.bottom=edgeRight.style.bottom=bottom+'%';
           // banner sits between the window bottom and the card's bottom edge → place title
           let cb=h-1; while(cb>0 && A(cxp,cb)<20) cb--;
           titleBaseY = (wb/h + (cb/h - wb/h)*0.45) * 100;
           updateTitlePos();
         }
         alignShine();
-      } catch(e){ /* tainted canvas — keep the border-radius fallback */ }
+      } catch(e){ /* keep the default window measurements if canvas access fails */ }
     };
     img.src = url;
   }
@@ -806,46 +795,42 @@
   wire('slotShine','fileShine', charshine);
   wire('slotFrame','fileFrame', frame);
 
-  // Load the shipped assets by default; the shine mask can be replaced by the user.
-  // cache-bust so re-uploaded assets (same filename) always load the newest version
+  // Cache-bust so re-uploaded assets (same filename) always load the newest version.
   const v = '?t=' + Date.now();
   loadInto(bg,    'cardbackground.png'+v);
   loadInto(charL, 'character.png'+v);
-  loadInto(charshine, 'shinelayer_character.png'+v);
+  loadInto(charshine,'shinelayer_character.png'+v);
   loadInto(frame, 'cardframe.png'+v);
-  applyBgFar(cfg.bgfar);   // push the scene back on first paint
-  applyRecess(cfg.recess);
 
   /* ---------- presets ---------- */
   const presets = [
-    {name:'Balanced',        tilt:15,pbg:20,pchar:10,cfill:100,depth:70, glow:90, holo:45,glare:50,ease:12},
-    {name:'Subtle premium',  tilt:9, pbg:12,pchar:6, cfill:100,depth:40, glow:70, holo:28,glare:35,ease:8},
-    {name:'Deep diorama',    tilt:17,pbg:34,pchar:16,cfill:104,depth:120,glow:105,holo:40,glare:55,ease:14},
-    {name:'Mystic max',      tilt:22,pbg:30,pchar:18,cfill:106,depth:100,glow:135,holo:80,glare:70,ease:16},
+    {name:'Balanced depth',  tilt:15,depth:180,charDepth:60,bgfill:134,cfill:100,ease:12},
+    {name:'Subtle relief',   tilt:10,depth:105,charDepth:36,bgfill:124,cfill:100,ease:9},
+    {name:'Deep diorama',    tilt:17,depth:220,charDepth:76,bgfill:144,cfill:103,ease:14},
+    {name:'Strong depth',    tilt:21,depth:255,charDepth:94,bgfill:154,cfill:105,ease:16},
   ];
   let pi=0;
   const setSlider=(id,val)=>{const el=document.getElementById(id); el.value=val; el.dispatchEvent(new Event('input'));};
   document.getElementById('btnPreset').addEventListener('click', () => {
     const p = presets[pi++ % presets.length];
-    setSlider('rTilt',p.tilt); setSlider('rPbg',p.pbg); setSlider('rPcm',p.pchar); setSlider('rPch',p.cfill);
-    setSlider('rDepth',p.depth); setSlider('rGlow',p.glow); setSlider('rHolo',p.holo);
-    setSlider('rGlare',p.glare); setSlider('rEase',p.ease);
+    setSlider('rTilt',p.tilt);
+    setSlider('rDepth',p.depth);
+    setSlider('rCdepth',p.charDepth);
+    setSlider('rBgfill',p.bgfill);
+    setSlider('rPch',p.cfill);
+    setSlider('rEase',p.ease);
     document.querySelector('.panel h1').textContent = '✦ ' + p.name;
   });
 
   document.getElementById('btnExport').addEventListener('click', () => {
     const css =
 `--tilt-max:${cfg.tilt}deg;
---parallax-scene:${cfg.pbg}px;
---parallax-char:${cfg.pchar}px;
+--scene-depth:${cfg.depth}px;
+--character-depth:${cfg.charDepth}px;
+--background-fill:${cfg.bgfill.toFixed(2)};
 --character-offset:${cfg.coffx}px ${cfg.coffy}px;
 --character-fill:${cfg.cfill.toFixed(2)};
---depth:${cfg.depth}px;
---bg-distance:${cfg.bgfar};
---scene-filter:blur(${(cfg.bgfar/100*5).toFixed(2)}px) saturate(${(1-cfg.bgfar/100*0.45).toFixed(2)}) brightness(${(1-cfg.bgfar/100*0.18).toFixed(2)});
---glow:${cfg.glow.toFixed(2)};
---holo:${cfg.holo.toFixed(2)};
---glare:${cfg.glare.toFixed(2)};
+--character-shine:${cfg.shine.toFixed(2)};
 --ease:${cfg.ease.toFixed(2)};`;
     navigator.clipboard?.writeText(css);
     const b=document.getElementById('btnExport'), o=b.textContent;
