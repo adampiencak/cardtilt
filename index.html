@@ -26,23 +26,41 @@
     align-items:center;
     justify-content:center;
     position:relative;
+    overflow:hidden;
+  }
+  .cards-row{
+    width:100%;
+    height:100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:clamp(12px,2vw,28px);
+    padding:clamp(14px,2vw,32px);
   }
   .stage{
     width:min(62vh, 440px);
     aspect-ratio: 1050 / 1572;
     position:relative;
+    flex:none;
     isolation:isolate;
     touch-action:none;
+    transition:width .28s ease, opacity .22s ease;
     container-type:inline-size;   /* lets the title scale with the card via cqw */
   }
+  .stage.is-spread-card{ display:none; }
+  .cards-row.spread .stage{
+    width:min(54vh, calc((100% - 56px) / 3));
+  }
+  .cards-row.spread .stage.is-spread-card{ display:block; }
 
   /* Soft tarot aura lives outside the card crop, so the artwork stays crisp. */
   .cardglow{
     position:absolute;
-    inset:-15%;
+    inset:-22%;
     z-index:0;
     pointer-events:none;
     will-change:transform;
+    filter:saturate(1.18);
   }
   .cardglow::before,
   .cardglow::after{
@@ -54,25 +72,26 @@
   .cardglow::before{
     background:
       radial-gradient(ellipse at 50% 43%,
-        rgba(255,211,122,.5) 0%,
-        rgba(230,157,77,.28) 27%,
-        rgba(143,86,225,.22) 48%,
-        rgba(73,111,214,.1) 62%,
-        transparent 76%);
-    filter:blur(26px);
+        rgba(255,226,151,.82) 0%,
+        rgba(255,174,74,.55) 25%,
+        rgba(183,91,226,.38) 47%,
+        rgba(73,111,214,.2) 63%,
+        transparent 78%);
+    filter:blur(30px);
+    box-shadow:0 0 54px rgba(255,166,67,.34);
     animation:auraBreath 5.5s ease-in-out infinite;
   }
   .cardglow::after{
-    inset:10%;
+    inset:6%;
     background:radial-gradient(ellipse at center,
-      rgba(255,220,145,.32) 0%,
-      rgba(255,174,74,.16) 46%,
-      transparent 72%);
-    filter:blur(18px);
-    opacity:.8;
+      rgba(255,235,184,.64) 0%,
+      rgba(255,164,50,.34) 46%,
+      transparent 74%);
+    filter:blur(22px);
+    opacity:1;
   }
   @keyframes auraBreath{
-    0%,100%{ opacity:.68; transform:scale(.97); }
+    0%,100%{ opacity:.8; transform:scale(.97); }
     50%{ opacity:1; transform:scale(1.035); }
   }
   @media (prefers-reduced-motion:reduce){
@@ -218,48 +237,45 @@
   }
   .charshine{
     position:absolute;
-    left:9.2%;
-    top:14.3%;
-    width:83%;
-    height:75.7%;
+    inset:0;
     opacity:var(--shine-op,.38);
     mix-blend-mode:screen;
     background-image:url("shinelayer_character.png");
-    background-size:100% 100%;
+    background-size:cover;
     background-position:center;
     background-repeat:no-repeat;
     -webkit-mask-image:
       radial-gradient(
-        ellipse 25% 19% at var(--shine-x,50%) var(--shine-y,50%),
+        ellipse 29% 22% at var(--shine-x,50%) var(--shine-y,50%),
         #000 0 28%, rgba(0,0,0,.82) 48%, rgba(0,0,0,.3) 72%, transparent 100%
       ),
       radial-gradient(
-        ellipse 16% 13% at calc(var(--shine-x,50%) - 11%) calc(var(--shine-y,50%) + 8%),
+        ellipse 19% 15% at calc(var(--shine-x,50%) - 11%) calc(var(--shine-y,50%) + 8%),
         rgba(0,0,0,.82) 0 25%, rgba(0,0,0,.38) 62%, transparent 100%
       ),
       radial-gradient(
-        ellipse 13% 18% at calc(var(--shine-x,50%) + 13%) calc(var(--shine-y,50%) - 6%),
+        ellipse 15% 21% at calc(var(--shine-x,50%) + 13%) calc(var(--shine-y,50%) - 6%),
         rgba(0,0,0,.72) 0 20%, rgba(0,0,0,.28) 60%, transparent 100%
       ),
       radial-gradient(
-        ellipse 8% 7% at calc(var(--shine-x,50%) + 22%) calc(var(--shine-y,50%) + 10%),
+        ellipse 9% 8% at calc(var(--shine-x,50%) + 22%) calc(var(--shine-y,50%) + 10%),
         rgba(0,0,0,.5) 0 18%, transparent 100%
       );
     mask-image:
       radial-gradient(
-        ellipse 25% 19% at var(--shine-x,50%) var(--shine-y,50%),
+        ellipse 29% 22% at var(--shine-x,50%) var(--shine-y,50%),
         #000 0 28%, rgba(0,0,0,.82) 48%, rgba(0,0,0,.3) 72%, transparent 100%
       ),
       radial-gradient(
-        ellipse 16% 13% at calc(var(--shine-x,50%) - 11%) calc(var(--shine-y,50%) + 8%),
+        ellipse 19% 15% at calc(var(--shine-x,50%) - 11%) calc(var(--shine-y,50%) + 8%),
         rgba(0,0,0,.82) 0 25%, rgba(0,0,0,.38) 62%, transparent 100%
       ),
       radial-gradient(
-        ellipse 13% 18% at calc(var(--shine-x,50%) + 13%) calc(var(--shine-y,50%) - 6%),
+        ellipse 15% 21% at calc(var(--shine-x,50%) + 13%) calc(var(--shine-y,50%) - 6%),
         rgba(0,0,0,.72) 0 20%, rgba(0,0,0,.28) 60%, transparent 100%
       ),
       radial-gradient(
-        ellipse 8% 7% at calc(var(--shine-x,50%) + 22%) calc(var(--shine-y,50%) + 10%),
+        ellipse 9% 8% at calc(var(--shine-x,50%) + 22%) calc(var(--shine-y,50%) + 10%),
         rgba(0,0,0,.5) 0 18%, transparent 100%
       );
     -webkit-mask-composite:source-over;
@@ -353,33 +369,35 @@
 </head>
 <body>
   <div class="stage-wrap">
-    <div class="stage" id="stage">
-      <div class="cardglow" id="cardglow"></div>
-      <div class="shadow" id="shadow"></div>
-      <div class="cardcrop" id="cardcrop">
-      <div class="card" id="card">
-        <div class="scene3d" id="scene3d">
-          <div class="back-plane" id="backPlane">
-            <div class="layer bg" id="bg"></div>
-          </div>
-          <div class="layer charshadow" id="charshadow"></div>
-          <div class="mid-plane" id="midPlane">
-            <div class="layer char" id="char"></div>
-            <div class="charshine-wrap" id="charshineWrap">
-              <div class="charshine" id="charshine"></div>
+    <div class="cards-row" id="cardsRow">
+      <div class="stage" id="stage">
+        <div class="cardglow" id="cardglow"></div>
+        <div class="shadow" id="shadow"></div>
+        <div class="cardcrop" id="cardcrop">
+        <div class="card" id="card">
+          <div class="scene3d" id="scene3d">
+            <div class="back-plane" id="backPlane">
+              <div class="layer bg" id="bg"></div>
+            </div>
+            <div class="layer charshadow" id="charshadow"></div>
+            <div class="mid-plane" id="midPlane">
+              <div class="layer char" id="char"></div>
+              <div class="charshine-wrap" id="charshineWrap">
+                <div class="charshine" id="charshine"></div>
+              </div>
             </div>
           </div>
+          <div class="clip">
+            <div class="depth-edge edge-top"></div>
+            <div class="depth-edge edge-bottom"></div>
+            <div class="depth-edge edge-left"></div>
+            <div class="depth-edge edge-right"></div>
+            <div class="recess" id="recess"></div>
+            <div class="layer frame"            id="frame"></div>
+            <div class="cardtitle" id="cardtitle"><span class="dot">✦</span><span id="titletext">THE FOOL</span><span class="dot">✦</span></div>
+          </div>
         </div>
-        <div class="clip">
-          <div class="depth-edge edge-top"></div>
-          <div class="depth-edge edge-bottom"></div>
-          <div class="depth-edge edge-left"></div>
-          <div class="depth-edge edge-right"></div>
-          <div class="recess" id="recess"></div>
-          <div class="layer frame"            id="frame"></div>
-          <div class="cardtitle" id="cardtitle"><span class="dot">✦</span><span id="titletext">THE FOOL</span><span class="dot">✦</span></div>
         </div>
-      </div>
       </div>
     </div>
   </div>
@@ -488,6 +506,7 @@
       <div class="toggle on" id="tShadow">Char shadow</div>
       <div class="toggle on" id="tShine">Char shine</div>
       <div class="toggle on" id="tGyro">Gyro</div>
+      <div class="toggle" id="tSpread">3-card spread</div>
     </div>
 
     <div class="btnrow">
@@ -495,32 +514,50 @@
       <button class="act" id="btnExport">Copy CSS values</button>
     </div>
 
-    <p class="hint">The shine image is registered to the character automatically and acts as a crisp moving highlight mask. The frame still owns the fixed aperture.</p>
+    <p class="hint">The character and shine use the same full-size canvas and rendering geometry, keeping their pixels registered. The frame still owns the fixed aperture.</p>
   </aside>
 
 <script>
 (() => {
   const stage = document.getElementById('stage');
-  const card  = document.getElementById('card');
-  const scene3d = document.getElementById('scene3d');
-  const backPlane = document.getElementById('backPlane');
-  const edgeTop = document.querySelector('.edge-top');
-  const edgeBottom = document.querySelector('.edge-bottom');
-  const edgeLeft = document.querySelector('.edge-left');
-  const edgeRight = document.querySelector('.edge-right');
   const bg     = document.getElementById('bg');
-  const recess = document.getElementById('recess');
   const charL  = document.getElementById('char');
-  const charshadow = document.getElementById('charshadow');
-  const charshineWrap = document.getElementById('charshineWrap');
   const charshine = document.getElementById('charshine');
   const frame  = document.getElementById('frame');
-  const cardglow = document.getElementById('cardglow');
-  const shadow = document.getElementById('shadow');
   const root   = document.documentElement.style;
+  const cardsRow = document.getElementById('cardsRow');
 
-  const cardtitle = document.getElementById('cardtitle');
-  const titletext = document.getElementById('titletext');
+  const mirrorStages = Array.from({length:2}, () => {
+    const clone = stage.cloneNode(true);
+    clone.classList.add('is-spread-card');
+    clone.setAttribute('aria-hidden','true');
+    clone.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
+    clone.removeAttribute('id');
+    cardsRow.appendChild(clone);
+    return clone;
+  });
+  const viewFor = stageEl => ({
+    stage:stageEl,
+    card:stageEl.querySelector('.card'),
+    scene3d:stageEl.querySelector('.scene3d'),
+    backPlane:stageEl.querySelector('.back-plane'),
+    edgeTop:stageEl.querySelector('.edge-top'),
+    edgeBottom:stageEl.querySelector('.edge-bottom'),
+    edgeLeft:stageEl.querySelector('.edge-left'),
+    edgeRight:stageEl.querySelector('.edge-right'),
+    bg:stageEl.querySelector('.layer.bg'),
+    recess:stageEl.querySelector('.recess'),
+    charL:stageEl.querySelector('.layer.char'),
+    charshadow:stageEl.querySelector('.charshadow'),
+    charshineWrap:stageEl.querySelector('.charshine-wrap'),
+    charshine:stageEl.querySelector('.charshine'),
+    frame:stageEl.querySelector('.layer.frame'),
+    cardglow:stageEl.querySelector('.cardglow'),
+    shadow:stageEl.querySelector('.shadow'),
+    titletext:stageEl.querySelector('.cardtitle span:not(.dot)')
+  });
+  const cardViews = [stage, ...mirrorStages].map(viewFor);
+
   let titleBaseY = 95.6;
   const updateTitlePos = () => root.setProperty('--title-y', (titleBaseY + (cfg.titleY||0)) + '%');
 
@@ -541,25 +578,25 @@
     float:true,
     gyro:true,
     chshadow:true,
-    charshine:true
+    charshine:true,
+    spread:false
   };
-
-  // Transparent content bounds let differently cropped shine maps stay registered.
-  let charImg=null, shineImg=null, boxW=1050, boxH=1572;
 
   // pointer target + current (for smooth lerp)
   let tx=0, ty=0, cx=0, cy=0, hovering=false;
   const t0 = performance.now();
 
   function setFromPointer(e){
-    const r = stage.getBoundingClientRect();
+    const r = e.currentTarget.getBoundingClientRect();
     tx = Math.max(-1, Math.min(1, ((e.clientX - r.left)/r.width)*2 - 1));
     ty = Math.max(-1, Math.min(1, ((e.clientY - r.top )/r.height)*2 - 1));
     hovering = true;
   }
-  stage.addEventListener('pointermove', setFromPointer);
-  stage.addEventListener('pointerdown', setFromPointer);
-  stage.addEventListener('pointerleave', () => { hovering=false; tx=0; ty=0; });
+  cardViews.forEach(view => {
+    view.stage.addEventListener('pointermove', setFromPointer);
+    view.stage.addEventListener('pointerdown', setFromPointer);
+    view.stage.addEventListener('pointerleave', () => { hovering=false; tx=0; ty=0; });
+  });
 
   window.addEventListener('deviceorientation', (e) => {
     if(!cfg.gyro || e.gamma==null) return;
@@ -582,26 +619,25 @@
 
     const rotY =  cx * cfg.tilt;
     const rotX = -cy * cfg.tilt;
-    card.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg)`;
-    cardglow.style.transform =
+    const cardTransform = `rotateX(${rotX}deg) rotateY(${rotY}deg)`;
+    const glowTransform =
       `translate(${-cx*8}px, ${-cy*6}px) scale(${(1+Math.abs(cx)*.025).toFixed(3)})`;
 
     // The frame owns a fixed mask. Strongly separated motion plus a directional
     // one-sided reveal makes the recess legible without allowing projected leaks.
     const bgShiftX=-cx*cfg.depth*.28, bgShiftY=-cy*cfg.depth*.28;
     const charShiftX=-cx*cfg.charDepth*.32, charShiftY=-cy*cfg.charDepth*.32;
-    bg.style.transform =
+    const bgTransform =
       `translate(${bgShiftX}px, ${bgShiftY}px) scale(${cfg.bgfill})`;
-    charL.style.transform =
+    const charTransform =
       `translate(${cfg.coffx+charShiftX}px, ${cfg.coffy+charShiftY}px) scale(${cfg.cfill})`;
-    charshineWrap.style.transform=charL.style.transform;
     root.setProperty('--shine-x',(50+cx*72)+'%');
     root.setProperty('--shine-y',(50+cy*58)+'%');
 
     // The cast shadow is projected onto the scene plane.
     const lx = (8 + cfg.charDepth*.18)*cfg.sho;
     const ly = (12 + cfg.charDepth*.28)*cfg.sho;
-    charshadow.style.transform =
+    const charshadowTransform =
       `translate(${cfg.coffx+lx+bgShiftX}px, ${cfg.coffy+ly+bgShiftY}px) scale(${cfg.cfill})`;
 
     const reveal=Math.min(30,6+cfg.depth*.09);
@@ -609,21 +645,32 @@
       el.style[axis]=Math.max(0,size).toFixed(1)+'px';
       el.style.opacity=Math.min(.34,Math.abs(size)/24).toFixed(2);
     };
-    setEdge(edgeLeft, -cx*reveal, 'width');
-    setEdge(edgeRight, cx*reveal, 'width');
-    setEdge(edgeTop, -cy*reveal, 'height');
-    setEdge(edgeBottom, cy*reveal, 'height');
 
     // The front aperture casts a directional shadow across the recessed artwork.
     const sx = -cx * (1.5 + cfg.depth*.012);
     const sy = -cy * (1.5 + cfg.depth*.012);
-    recess.style.boxShadow =
+    const recessShadow =
       `inset ${sx.toFixed(1)}px ${sy.toFixed(1)}px 10px 0 rgba(31,20,10,.14),`+
       `inset ${(sx*.3).toFixed(1)}px ${(sy*.3).toFixed(1)}px 3px 0 rgba(20,13,7,.08)`;
-
-    shadow.style.transform =
+    const floorShadowTransform =
       `translate(${-50 - cx*10}%, ${Math.abs(cy)*4}%) scaleX(${(1-Math.abs(cx)*.12).toFixed(3)})`;
-    shadow.style.opacity = 0.46 + Math.abs(cx)*0.2;
+    const floorShadowOpacity = 0.46 + Math.abs(cx)*0.2;
+
+    cardViews.forEach(view => {
+      view.card.style.transform=cardTransform;
+      view.cardglow.style.transform=glowTransform;
+      view.bg.style.transform=bgTransform;
+      view.charL.style.transform=charTransform;
+      view.charshineWrap.style.transform=charTransform;
+      view.charshadow.style.transform=charshadowTransform;
+      setEdge(view.edgeLeft, -cx*reveal, 'width');
+      setEdge(view.edgeRight, cx*reveal, 'width');
+      setEdge(view.edgeTop, -cy*reveal, 'height');
+      setEdge(view.edgeBottom, cy*reveal, 'height');
+      view.recess.style.boxShadow=recessShadow;
+      view.shadow.style.transform=floorShadowTransform;
+      view.shadow.style.opacity=floorShadowOpacity;
+    });
 
     requestAnimationFrame(loop);
   }
@@ -653,90 +700,51 @@
   bind('rTsz',   v=>(v/100).toFixed(2)+'×', v=>root.setProperty('--title-scale', v/100));
   bind('rTy',    v=>(v/10).toFixed(1),      v=>{cfg.titleY=v/10; updateTitlePos();});
   document.getElementById('titleInput').addEventListener('input', e => {
-    titletext.textContent = e.target.value.toUpperCase();
+    cardViews.forEach(view => view.titletext.textContent=e.target.value.toUpperCase());
   });
 
   const toggle = (id, key) => {
     const el = document.getElementById(id);
     el.addEventListener('click', () => {
       cfg[key]=!cfg[key]; el.classList.toggle('on', cfg[key]);
-      if(key==='chshadow') charshadow.style.display = cfg.chshadow ? '' : 'none';
-      if(key==='charshine') charshineWrap.style.display = cfg.charshine ? '' : 'none';
+      if(key==='chshadow') cardViews.forEach(view => view.charshadow.style.display=cfg.chshadow ? '' : 'none');
+      if(key==='charshine') cardViews.forEach(view => view.charshineWrap.style.display=cfg.charshine ? '' : 'none');
     });
   };
   toggle('tFloat','float');
   toggle('tShadow','chshadow');
   toggle('tShine','charshine');
   toggle('tGyro','gyro');
+  const spreadToggle = document.getElementById('tSpread');
+  spreadToggle.addEventListener('click', () => {
+    cfg.spread=!cfg.spread;
+    spreadToggle.classList.toggle('on',cfg.spread);
+    cardsRow.classList.toggle('spread',cfg.spread);
+  });
 
   /* ---------- asset loading ---------- */
   function loadInto(layer, url){
-    if(layer===charshine){
-      charshine.style.backgroundImage=`url("${url}")`;
-      charshine.style.backgroundSize='100% 100%';
-      charshine.style.backgroundPosition='center';
-      analyze(url).then(info=>{ if(info){ shineImg=info; alignShine(); } });
-      return;
-    }
-    layer.style.backgroundImage = `url("${url}")`;
-    layer.style.backgroundSize = 'cover';
-    layer.style.backgroundPosition = 'center';
+    const key =
+      layer===bg ? 'bg' :
+      layer===charL ? 'charL' :
+      layer===charshine ? 'charshine' :
+      layer===frame ? 'frame' : null;
+    if(!key) return;
+    cardViews.forEach(view => {
+      view[key].style.backgroundImage=`url("${url}")`;
+      view[key].style.backgroundSize='cover';
+      view[key].style.backgroundPosition='center';
+    });
     if(layer === frame){
       measureFrame(url);
     }
     if(layer === charL){
-      charshadow.style.backgroundImage = `url("${url}")`;
-      charshadow.style.backgroundSize = 'cover';
-      charshadow.style.backgroundPosition = 'center';
-      analyze(url).then(info=>{ if(info){ charImg=info; alignShine(); } });
+      cardViews.forEach(view => {
+        view.charshadow.style.backgroundImage=`url("${url}")`;
+        view.charshadow.style.backgroundSize='cover';
+        view.charshadow.style.backgroundPosition='center';
+      });
     }
-  }
-
-  function analyze(url){
-    return new Promise(resolve=>{
-      const img=new Image();
-      img.crossOrigin='anonymous';
-      img.onload=()=>{
-        try{
-          const w=img.naturalWidth,h=img.naturalHeight;
-          const canvas=document.createElement('canvas');
-          canvas.width=w; canvas.height=h;
-          const ctx=canvas.getContext('2d');
-          ctx.drawImage(img,0,0);
-          const data=ctx.getImageData(0,0,w,h).data;
-          let x0=w,y0=h,x1=-1,y1=-1;
-          for(let y=0;y<h;y++) for(let x=0;x<w;x++){
-            if(data[(y*w+x)*4+3]>16){
-              if(x<x0)x0=x; if(x>x1)x1=x;
-              if(y<y0)y0=y; if(y>y1)y1=y;
-            }
-          }
-          resolve(x1<0
-            ? {w,h,image:img,fx0:0,fy0:0,fx1:1,fy1:1}
-            : {w,h,image:img,fx0:x0/w,fy0:y0/h,fx1:(x1+1)/w,fy1:(y1+1)/h});
-        }catch(e){ resolve(null); }
-      };
-      img.onerror=()=>resolve(null);
-      img.src=url;
-    });
-  }
-
-  function alignShine(){
-    if(!charImg || !shineImg) return;
-    const c=charImg,s=shineImg;
-    const cover=Math.max(boxW/c.w,boxH/c.h);
-    const dw=c.w*cover,dh=c.h*cover;
-    const ox=(boxW-dw)/2,oy=(boxH-dh)/2;
-    const left=(ox+c.fx0*dw)/boxW;
-    const right=(ox+c.fx1*dw)/boxW;
-    const top=(oy+c.fy0*dh)/boxH;
-    const bottom=(oy+c.fy1*dh)/boxH;
-    const width=(right-left)/(s.fx1-s.fx0);
-    const height=(bottom-top)/(s.fy1-s.fy0);
-    charshine.style.left=((left-s.fx0*width)*100).toFixed(3)+'%';
-    charshine.style.top=((top-s.fy0*height)*100).toFixed(3)+'%';
-    charshine.style.width=(width*100).toFixed(3)+'%';
-    charshine.style.height=(height*100).toFixed(3)+'%';
   }
 
   /* Measure the frame's transparent opening and use it as the artwork mask. */
@@ -745,11 +753,10 @@
     img.onload = () => {
       try {
         const w=img.naturalWidth, h=img.naturalHeight;
-        boxW=w; boxH=h;
         const c=document.createElement('canvas'); c.width=w; c.height=h;
         const x=c.getContext('2d'); x.drawImage(img,0,0);
         const d=x.getImageData(0,0,w,h).data;
-        stage.style.aspectRatio = w + ' / ' + h;
+        cardViews.forEach(view => view.stage.style.aspectRatio=w+' / '+h);
         const A=(px,py)=>d[(py*w+px)*4+3];
         const cxp=w>>1, cyp=h>>1;
         let wt=cyp; while(wt>0    && A(cxp,wt)<20) wt--; wt++;   // window opening from centre
@@ -761,23 +768,24 @@
           const right=(1-wr/w)*100, bottom=(1-wb/h)*100;
           const aperture =
             `inset(${top}% ${right}% ${bottom}% ${left}% round .8%)`;
-          scene3d.style.clipPath=aperture;
-          backPlane.style.top=top+'%'; backPlane.style.left=left+'%';
-          backPlane.style.right=right+'%'; backPlane.style.bottom=bottom+'%';
-          recess.style.top=top+'%'; recess.style.left=left+'%';
-          recess.style.right=right+'%'; recess.style.bottom=bottom+'%';
-          edgeTop.style.top=top+'%'; edgeBottom.style.top=(wb/h*100)+'%';
-          edgeTop.style.left=edgeBottom.style.left=left+'%';
-          edgeTop.style.right=edgeBottom.style.right=right+'%';
-          edgeLeft.style.left=left+'%'; edgeRight.style.left=(wr/w*100)+'%';
-          edgeLeft.style.top=edgeRight.style.top=top+'%';
-          edgeLeft.style.bottom=edgeRight.style.bottom=bottom+'%';
+          cardViews.forEach(view => {
+            view.scene3d.style.clipPath=aperture;
+            view.backPlane.style.top=top+'%'; view.backPlane.style.left=left+'%';
+            view.backPlane.style.right=right+'%'; view.backPlane.style.bottom=bottom+'%';
+            view.recess.style.top=top+'%'; view.recess.style.left=left+'%';
+            view.recess.style.right=right+'%'; view.recess.style.bottom=bottom+'%';
+            view.edgeTop.style.top=top+'%'; view.edgeBottom.style.top=(wb/h*100)+'%';
+            view.edgeTop.style.left=view.edgeBottom.style.left=left+'%';
+            view.edgeTop.style.right=view.edgeBottom.style.right=right+'%';
+            view.edgeLeft.style.left=left+'%'; view.edgeRight.style.left=(wr/w*100)+'%';
+            view.edgeLeft.style.top=view.edgeRight.style.top=top+'%';
+            view.edgeLeft.style.bottom=view.edgeRight.style.bottom=bottom+'%';
+          });
           // banner sits between the window bottom and the card's bottom edge → place title
           let cb=h-1; while(cb>0 && A(cxp,cb)<20) cb--;
           titleBaseY = (wb/h + (cb/h - wb/h)*0.45) * 100;
           updateTitlePos();
         }
-        alignShine();
       } catch(e){ /* keep the default window measurements if canvas access fails */ }
     };
     img.src = url;
