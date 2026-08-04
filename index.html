@@ -298,6 +298,38 @@
     z-index:6;
     transform:translateZ(0);
     pointer-events:none;
+    /* Exact light-material bounds of the bundled frame asset. */
+    clip-path:inset(.064% 1.905% .127% 1.905% round 18px);
+  }
+
+  /* The moving inner light is clipped by the complete frame artwork. */
+  .frame-shine{
+    position:absolute;
+    inset:0;
+    z-index:7;
+    transform:translateZ(1px);
+    pointer-events:none;
+    opacity:var(--frame-shine-op,.9);
+    mix-blend-mode:screen;
+    background:radial-gradient(
+      ellipse 48% 40% at var(--shine-x,50%) var(--shine-y,50%),
+      #fffef5 0%,
+      rgba(255,240,190,.98) 20%,
+      rgba(255,197,78,.78) 48%,
+      rgba(231,125,10,.3) 72%,
+      transparent 100%
+    );
+    clip-path:inset(.064% 1.905% .127% 1.905% round 18px);
+    -webkit-mask-image:url("cardframe.png");
+    mask-image:url("cardframe.png");
+    -webkit-mask-size:cover;
+    mask-size:cover;
+    -webkit-mask-position:center;
+    mask-position:center;
+    -webkit-mask-repeat:no-repeat;
+    mask-repeat:no-repeat;
+    mask-mode:alpha;
+    will-change:opacity,background;
   }
 
   /* code-rendered card title, sitting on the frame's (now blank) banner */
@@ -305,16 +337,73 @@
     position:absolute; left:0; right:0;
     top:var(--title-y, 95.6%);
     transform:translate3d(0,-50%,1px);
-    z-index:7; pointer-events:none;
+    z-index:8; pointer-events:none;
     text-align:center; white-space:nowrap;
     font-family:"Iowan Old Style","Palatino Linotype","Book Antiqua",Georgia,"Times New Roman",serif;
     font-weight:600; text-transform:uppercase;
-    letter-spacing:.16em;
+    letter-spacing:.19em;
     font-size:calc(5.2cqw * var(--title-scale,1));
-    color:#241c14;
-    text-shadow:0 1px 0 rgba(255,255,255,.35);
+    color:#2b172c;
   }
-  .cardtitle .dot{ font-size:.62em; opacity:.7; margin:0 .55em; vertical-align:.14em; }
+  .cardtitle::after{
+    content:"";
+    position:absolute;
+    z-index:-1;
+    left:20%; right:20%; top:50%; height:135%;
+    transform:translateY(-50%);
+    border-radius:50%;
+    background:radial-gradient(ellipse,rgba(102,46,118,.2),rgba(178,106,42,.08) 48%,transparent 74%);
+    filter:blur(5px);
+  }
+  .cardtitle span:not(.dot){
+    display:inline-block;
+    color:transparent;
+    background:linear-gradient(
+      108deg,
+      #241525 0%,
+      #3e2142 34%,
+      #9b6534 43%,
+      #f4dda2 49%,
+      #88502c 55%,
+      #351d39 65%,
+      #241525 100%
+    );
+    background-size:240% 100%;
+    background-position:100% 50%;
+    -webkit-background-clip:text;
+    background-clip:text;
+    -webkit-text-stroke:.35px rgba(48,25,43,.72);
+    filter:
+      drop-shadow(0 1px 0 rgba(255,248,214,.7))
+      drop-shadow(0 0 2px rgba(90,38,105,.32));
+    animation:titleMysticShimmer 6.5s ease-in-out infinite;
+  }
+  .cardtitle .dot{
+    display:inline-block;
+    font-size:.62em;
+    color:#74465f;
+    opacity:.84;
+    margin:0 .58em;
+    vertical-align:.14em;
+    text-shadow:
+      0 1px 0 rgba(255,241,181,.72),
+      0 0 4px rgba(108,43,129,.52);
+    animation:sigilTwinkle 3.8s ease-in-out infinite;
+  }
+  .cardtitle .dot:last-child{ animation-delay:-1.9s; }
+  @keyframes titleMysticShimmer{
+    0%,28%{ background-position:100% 50%; filter:drop-shadow(0 1px 0 rgba(255,248,214,.7)) drop-shadow(0 0 2px rgba(90,38,105,.28)); }
+    58%,72%{ background-position:0% 50%; filter:drop-shadow(0 1px 0 rgba(255,248,214,.82)) drop-shadow(0 0 4px rgba(107,40,130,.46)); }
+    100%{ background-position:-100% 50%; filter:drop-shadow(0 1px 0 rgba(255,248,214,.7)) drop-shadow(0 0 2px rgba(90,38,105,.28)); }
+  }
+  @keyframes sigilTwinkle{
+    0%,100%{ opacity:.62; transform:scale(.88) rotate(0deg); }
+    48%{ opacity:1; transform:scale(1.08) rotate(22deg); }
+    62%{ opacity:.88; transform:scale(1) rotate(30deg); }
+  }
+  @media (prefers-reduced-motion:reduce){
+    .cardtitle span:not(.dot),.cardtitle .dot{ animation:none; }
+  }
 
   /* ---------- Control panel ---------- */
   .panel{
@@ -394,6 +483,7 @@
             <div class="depth-edge edge-right"></div>
             <div class="recess" id="recess"></div>
             <div class="layer frame"            id="frame"></div>
+            <div class="frame-shine" id="frameshine"></div>
             <div class="cardtitle" id="cardtitle"><span class="dot">✦</span><span id="titletext">THE FOOL</span><span class="dot">✦</span></div>
           </div>
         </div>
@@ -501,10 +591,17 @@
       <input type="range" id="rShine" min="0" max="125" value="38">
     </div>
 
+    <p class="grouplabel">Frame shine</p>
+    <div class="ctrl">
+      <label>Shine strength <b id="vFrameShine">0.90</b></label>
+      <input type="range" id="rFrameShine" min="0" max="125" value="90">
+    </div>
+
     <div class="toggles">
       <div class="toggle on" id="tFloat">Idle float</div>
       <div class="toggle on" id="tShadow">Char shadow</div>
       <div class="toggle on" id="tShine">Char shine</div>
+      <div class="toggle on" id="tFrameShine">Frame shine</div>
       <div class="toggle on" id="tGyro">Gyro</div>
       <div class="toggle" id="tSpread">3-card spread</div>
     </div>
@@ -524,6 +621,7 @@
   const charL  = document.getElementById('char');
   const charshine = document.getElementById('charshine');
   const frame  = document.getElementById('frame');
+  const frameshine = document.getElementById('frameshine');
   const root   = document.documentElement.style;
   const cardsRow = document.getElementById('cardsRow');
 
@@ -552,6 +650,7 @@
     charshineWrap:stageEl.querySelector('.charshine-wrap'),
     charshine:stageEl.querySelector('.charshine'),
     frame:stageEl.querySelector('.layer.frame'),
+    frameshine:stageEl.querySelector('.frame-shine'),
     cardglow:stageEl.querySelector('.cardglow'),
     shadow:stageEl.querySelector('.shadow'),
     titletext:stageEl.querySelector('.cardtitle span:not(.dot)')
@@ -572,6 +671,7 @@
     shad:.4,
     sho:1,
     shine:.38,
+    frameShine:.9,
     ease:.12,
     idle:1.6,
     titleY:0,
@@ -579,6 +679,7 @@
     gyro:true,
     chshadow:true,
     charshine:true,
+    frameShineEnabled:true,
     spread:false
   };
 
@@ -631,8 +732,9 @@
       `translate(${bgShiftX}px, ${bgShiftY}px) scale(${cfg.bgfill})`;
     const charTransform =
       `translate(${cfg.coffx+charShiftX}px, ${cfg.coffy+charShiftY}px) scale(${cfg.cfill})`;
-    root.setProperty('--shine-x',(50+cx*72)+'%');
-    root.setProperty('--shine-y',(50+cy*58)+'%');
+    const shineX=50+cx*72, shineY=50+cy*58;
+    root.setProperty('--shine-x',shineX+'%');
+    root.setProperty('--shine-y',shineY+'%');
 
     // The cast shadow is projected onto the scene plane.
     const lx = (8 + cfg.charDepth*.18)*cfg.sho;
@@ -695,6 +797,7 @@
   bind('rShad',  v=>(v/100).toFixed(2),    v=>{cfg.shad=v/100; root.setProperty('--chshadow-op', v/100);});
   bind('rSho',   v=>(v/100).toFixed(1)+'×', v=>cfg.sho=v/100);
   bind('rShine', v=>(v/100).toFixed(2),    v=>{cfg.shine=v/100; root.setProperty('--shine-op',v/100);});
+  bind('rFrameShine', v=>(v/100).toFixed(2), v=>{cfg.frameShine=v/100; root.setProperty('--frame-shine-op',v/100);});
   bind('rEase',  v=>(v/100).toFixed(2), v=>{cfg.ease=v/100;});
   bind('rIdle',  v=>(v/100).toFixed(1)+'×', v=>{cfg.idle=v/100;});
   bind('rTsz',   v=>(v/100).toFixed(2)+'×', v=>root.setProperty('--title-scale', v/100));
@@ -709,11 +812,13 @@
       cfg[key]=!cfg[key]; el.classList.toggle('on', cfg[key]);
       if(key==='chshadow') cardViews.forEach(view => view.charshadow.style.display=cfg.chshadow ? '' : 'none');
       if(key==='charshine') cardViews.forEach(view => view.charshineWrap.style.display=cfg.charshine ? '' : 'none');
+      if(key==='frameShineEnabled') cardViews.forEach(view => view.frameshine.style.display=cfg.frameShineEnabled ? '' : 'none');
     });
   };
   toggle('tFloat','float');
   toggle('tShadow','chshadow');
   toggle('tShine','charshine');
+  toggle('tFrameShine','frameShineEnabled');
   toggle('tGyro','gyro');
   const spreadToggle = document.getElementById('tSpread');
   spreadToggle.addEventListener('click', () => {
@@ -736,6 +841,10 @@
       view[key].style.backgroundPosition='center';
     });
     if(layer === frame){
+      cardViews.forEach(view => {
+        view.frameshine.style.webkitMaskImage=`url("${url}")`;
+        view.frameshine.style.maskImage=`url("${url}")`;
+      });
       measureFrame(url);
     }
     if(layer === charL){
@@ -758,7 +867,41 @@
         const d=x.getImageData(0,0,w,h).data;
         cardViews.forEach(view => view.stage.style.aspectRatio=w+' / '+h);
         const A=(px,py)=>d[(py*w+px)*4+3];
+        const isFrameSurface=(px,py) => {
+          const i=(py*w+px)*4;
+          return d[i+3]>=32 && d[i]+d[i+1]+d[i+2]>=300;
+        };
         const cxp=w>>1, cyp=h>>1;
+
+        // Select the first/last light material pixel on each centre axis. Dark
+        // seams may split the frame band, so its outermost edge is authoritative.
+        const findForward=(from,to,sample) => {
+          for(let i=from;i<=to;i++) if(sample(i)) return i;
+          return -1;
+        };
+        const findBackward=(from,to,sample) => {
+          for(let i=from;i>=to;i--) if(sample(i)) return i;
+          return -1;
+        };
+        const outerLeft=findForward(0,cxp,px=>isFrameSurface(px,cyp));
+        const outerRight=findBackward(w-1,cxp,px=>isFrameSurface(px,cyp));
+        const outerTop=findForward(0,cyp,py=>isFrameSurface(cxp,py));
+        const outerBottom=findBackward(h-1,cyp,py=>isFrameSurface(cxp,py));
+        if(outerLeft>=0 && outerRight>=0 && outerTop>=0 && outerBottom>=0){
+          const strokeTop=(outerTop/h)*100;
+          const strokeRight=((w-1-outerRight)/w)*100;
+          const strokeBottom=((h-1-outerBottom)/h)*100;
+          const strokeLeft=(outerLeft/w)*100;
+          const visibleFrame=
+            `inset(${strokeTop}% ${strokeRight}% ${strokeBottom}% ${strokeLeft}% round 18px)`;
+          cardViews.forEach(view => {
+            // Remove detached shadow pixels outside the cream frame boundary;
+            // otherwise they read as a second, incorrectly spaced shine line.
+            view.frame.style.clipPath=visibleFrame;
+            view.frameshine.style.clipPath=visibleFrame;
+          });
+        }
+
         let wt=cyp; while(wt>0    && A(cxp,wt)<20) wt--; wt++;   // window opening from centre
         let wb=cyp; while(wb<h-1  && A(cxp,wb)<20) wb++; wb--;
         let wl=cxp; while(wl>0    && A(wl,cyp)<20) wl--; wl++;
@@ -839,6 +982,7 @@
 --character-offset:${cfg.coffx}px ${cfg.coffy}px;
 --character-fill:${cfg.cfill.toFixed(2)};
 --character-shine:${cfg.shine.toFixed(2)};
+--frame-shine:${cfg.frameShine.toFixed(2)};
 --ease:${cfg.ease.toFixed(2)};`;
     navigator.clipboard?.writeText(css);
     const b=document.getElementById('btnExport'), o=b.textContent;
