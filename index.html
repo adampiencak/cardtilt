@@ -60,7 +60,8 @@
     z-index:0;
     pointer-events:none;
     will-change:transform;
-    filter:saturate(1.18);
+    opacity:.52;
+    filter:saturate(1.06);
   }
   .cardglow::before,
   .cardglow::after{
@@ -193,6 +194,7 @@
     will-change:transform;
   }
   #bg{ background-image:url("cardbackground.png"); }
+  #bgshine{ background-image:url("pozadie-shine.png"); }
   #char, #charshadow{ background-image:url("character.png"); }
   #frame{ background-image:url("cardframe.png"); }
 
@@ -203,8 +205,24 @@
     z-index:1;
     inset:0;
     border-radius:0;
-    transform:scale(1.34);
+    transform:scale(1.15);
     background:linear-gradient(180deg,#f6bd4d 0%,#e9a43f 46%,#6b7b8c 62%,#47566a 100%);
+  }
+
+  /* Background highlight texture shares the scene's exact crop and parallax. */
+  .bgshine{
+    position:absolute;
+    inset:0;
+    z-index:2;
+    border-radius:0;
+    opacity:var(--bg-shine-op,.51);
+    mix-blend-mode:screen;
+    background-image:url("pozadie-shine.png");
+    background-size:cover;
+    background-position:center;
+    background-repeat:no-repeat;
+    pointer-events:none;
+    will-change:transform,opacity;
   }
 
   /* ---- cast shadow: character silhouette dropped onto the scene plane ---- */
@@ -213,7 +231,7 @@
     transform-origin:50% 100%;
     filter:brightness(0) blur(6px);
     opacity:var(--chshadow-op,.4);
-    transform:translate(44.8px,44.8px);
+    transform:translate(18.8px,44.8px);
     pointer-events:none;
   }
 
@@ -221,67 +239,33 @@
   .layer.char{
     z-index:3;
     transform-origin:50% 100%;   /* grow from the bottom so the ground never lifts */
-    transform:translate(26px,16px);
+    transform:translate(0,16px);
     filter:drop-shadow(0 4px 5px rgba(0,0,0,.28));
     pointer-events:none;
   }
 
-  /* An organic moving light bloom, clipped by the character highlight map. */
+  /* A diagonal light band sweeps across the character highlight texture. */
   .charshine-wrap{
     position:absolute;
     inset:0;
     z-index:4;
     transform-origin:50% 100%;
+    transform:translate(0,16px);
     pointer-events:none;
     will-change:transform;
   }
   .charshine{
     position:absolute;
     inset:0;
-    opacity:var(--shine-op,.38);
+    opacity:var(--shine-op,.47);
     mix-blend-mode:screen;
     background-image:url("shinelayer_character.png");
     background-size:cover;
     background-position:center;
     background-repeat:no-repeat;
-    -webkit-mask-image:
-      radial-gradient(
-        ellipse 29% 22% at var(--shine-x,50%) var(--shine-y,50%),
-        #000 0 28%, rgba(0,0,0,.82) 48%, rgba(0,0,0,.3) 72%, transparent 100%
-      ),
-      radial-gradient(
-        ellipse 19% 15% at calc(var(--shine-x,50%) - 11%) calc(var(--shine-y,50%) + 8%),
-        rgba(0,0,0,.82) 0 25%, rgba(0,0,0,.38) 62%, transparent 100%
-      ),
-      radial-gradient(
-        ellipse 15% 21% at calc(var(--shine-x,50%) + 13%) calc(var(--shine-y,50%) - 6%),
-        rgba(0,0,0,.72) 0 20%, rgba(0,0,0,.28) 60%, transparent 100%
-      ),
-      radial-gradient(
-        ellipse 9% 8% at calc(var(--shine-x,50%) + 22%) calc(var(--shine-y,50%) + 10%),
-        rgba(0,0,0,.5) 0 18%, transparent 100%
-      );
-    mask-image:
-      radial-gradient(
-        ellipse 29% 22% at var(--shine-x,50%) var(--shine-y,50%),
-        #000 0 28%, rgba(0,0,0,.82) 48%, rgba(0,0,0,.3) 72%, transparent 100%
-      ),
-      radial-gradient(
-        ellipse 19% 15% at calc(var(--shine-x,50%) - 11%) calc(var(--shine-y,50%) + 8%),
-        rgba(0,0,0,.82) 0 25%, rgba(0,0,0,.38) 62%, transparent 100%
-      ),
-      radial-gradient(
-        ellipse 15% 21% at calc(var(--shine-x,50%) + 13%) calc(var(--shine-y,50%) - 6%),
-        rgba(0,0,0,.72) 0 20%, rgba(0,0,0,.28) 60%, transparent 100%
-      ),
-      radial-gradient(
-        ellipse 9% 8% at calc(var(--shine-x,50%) + 22%) calc(var(--shine-y,50%) + 10%),
-        rgba(0,0,0,.5) 0 18%, transparent 100%
-      );
-    -webkit-mask-composite:source-over;
-    mask-composite:add;
-    -webkit-mask-repeat:no-repeat;
-    mask-repeat:no-repeat;
+    filter:
+      drop-shadow(0 0 3px rgba(255,220,142,.5))
+      drop-shadow(0 0 9px rgba(190,94,225,.2));
   }
 
   /* The aperture shadow stays near the front surface, but its direction follows the tilt. */
@@ -298,38 +282,71 @@
     z-index:6;
     transform:translateZ(0);
     pointer-events:none;
-    /* Exact light-material bounds of the bundled frame asset. */
-    clip-path:inset(.064% 1.905% .127% 1.905% round 18px);
+    clip-path:inset(0 round 18px);
   }
 
-  /* The moving inner light is clipped by the complete frame artwork. */
+  /* The frame texture uses the same synchronized sweep as the character. */
   .frame-shine{
     position:absolute;
     inset:0;
     z-index:7;
     transform:translateZ(1px);
     pointer-events:none;
-    opacity:var(--frame-shine-op,.9);
+    opacity:var(--frame-shine-op,.49);
     mix-blend-mode:screen;
-    background:radial-gradient(
-      ellipse 48% 40% at var(--shine-x,50%) var(--shine-y,50%),
-      #fffef5 0%,
-      rgba(255,240,190,.98) 20%,
-      rgba(255,197,78,.78) 48%,
-      rgba(231,125,10,.3) 72%,
-      transparent 100%
+    background-image:url("cardframeshine.png");
+    background-size:cover;
+    background-position:center;
+    background-repeat:no-repeat;
+    clip-path:inset(0 round 18px);
+    will-change:opacity,background;
+  }
+
+  /* A separate outer-edge glint remains visible beyond the frame artwork. */
+  .frame-stroke-shine{
+    position:absolute;
+    inset:-.75px;
+    z-index:8;
+    transform:translateZ(2px);
+    border:1.5px solid rgba(255,231,163,.92);
+    border-radius:19px;
+    box-shadow:0 0 4px rgba(255,198,91,.38);
+    opacity:calc(var(--frame-shine-op,.49) * 1.5);
+    mix-blend-mode:screen;
+    pointer-events:none;
+  }
+
+  .charshine,
+  .bgshine,
+  .frame-shine,
+  .frame-stroke-shine,
+  .cardtitle span:not(.dot)::after{
+    -webkit-mask-image:linear-gradient(
+      105deg,
+      transparent 43%,
+      rgba(0,0,0,.18) 46%,
+      rgba(0,0,0,.72) 48.5%,
+      #000 50%,
+      rgba(0,0,0,.72) 51.5%,
+      rgba(0,0,0,.18) 54%,
+      transparent 57%
     );
-    clip-path:inset(.064% 1.905% .127% 1.905% round 18px);
-    -webkit-mask-image:url("cardframe.png");
-    mask-image:url("cardframe.png");
-    -webkit-mask-size:cover;
-    mask-size:cover;
-    -webkit-mask-position:center;
-    mask-position:center;
+    mask-image:linear-gradient(
+      105deg,
+      transparent 43%,
+      rgba(0,0,0,.18) 46%,
+      rgba(0,0,0,.72) 48.5%,
+      #000 50%,
+      rgba(0,0,0,.72) 51.5%,
+      rgba(0,0,0,.18) 54%,
+      transparent 57%
+    );
+    -webkit-mask-size:300% 100%;
+    mask-size:300% 100%;
+    -webkit-mask-position:var(--shine-line-x,50%) 50%;
+    mask-position:var(--shine-line-x,50%) 50%;
     -webkit-mask-repeat:no-repeat;
     mask-repeat:no-repeat;
-    mask-mode:alpha;
-    will-change:opacity,background;
   }
 
   /* code-rendered card title, sitting on the frame's (now blank) banner */
@@ -342,7 +359,7 @@
     font-family:"Iowan Old Style","Palatino Linotype","Book Antiqua",Georgia,"Times New Roman",serif;
     font-weight:600; text-transform:uppercase;
     letter-spacing:.19em;
-    font-size:calc(5.2cqw * var(--title-scale,1));
+    font-size:calc(5.2cqw * var(--title-scale,1.07));
     color:#2b172c;
   }
   .cardtitle::after{
@@ -357,52 +374,52 @@
   }
   .cardtitle span:not(.dot){
     display:inline-block;
+    position:relative;
     color:transparent;
     background:linear-gradient(
-      108deg,
-      #241525 0%,
-      #3e2142 34%,
-      #9b6534 43%,
-      #f4dda2 49%,
-      #88502c 55%,
-      #351d39 65%,
-      #241525 100%
+      180deg,
+      #493244 0%,
+      #2b192b 48%,
+      #241525 68%,
+      #3b2836 100%
     );
-    background-size:240% 100%;
-    background-position:100% 50%;
     -webkit-background-clip:text;
     background-clip:text;
-    -webkit-text-stroke:.35px rgba(48,25,43,.72);
+    -webkit-text-stroke:.5px rgba(42,22,38,.82);
     filter:
-      drop-shadow(0 1px 0 rgba(255,248,214,.7))
-      drop-shadow(0 0 2px rgba(90,38,105,.32));
-    animation:titleMysticShimmer 6.5s ease-in-out infinite;
+      drop-shadow(0 1px 0 rgba(255,248,214,.2))
+      drop-shadow(0 0 1.5px rgba(90,38,105,.16));
+  }
+  .cardtitle span:not(.dot)::after{
+    content:attr(data-text);
+    position:absolute;
+    inset:0;
+    color:transparent;
+    -webkit-text-stroke:.9px rgba(210,180,118,.58);
+    filter:drop-shadow(0 0 1px rgba(245,211,146,.24));
+    pointer-events:none;
+    will-change:mask-position,-webkit-mask-position;
   }
   .cardtitle .dot{
     display:inline-block;
     font-size:.62em;
-    color:#74465f;
+    color:#654653;
     opacity:.84;
     margin:0 .58em;
     vertical-align:.14em;
     text-shadow:
-      0 1px 0 rgba(255,241,181,.72),
-      0 0 4px rgba(108,43,129,.52);
+      0 1px 0 rgba(255,241,181,.5),
+      0 0 3px rgba(108,43,129,.25);
     animation:sigilTwinkle 3.8s ease-in-out infinite;
   }
   .cardtitle .dot:last-child{ animation-delay:-1.9s; }
-  @keyframes titleMysticShimmer{
-    0%,28%{ background-position:100% 50%; filter:drop-shadow(0 1px 0 rgba(255,248,214,.7)) drop-shadow(0 0 2px rgba(90,38,105,.28)); }
-    58%,72%{ background-position:0% 50%; filter:drop-shadow(0 1px 0 rgba(255,248,214,.82)) drop-shadow(0 0 4px rgba(107,40,130,.46)); }
-    100%{ background-position:-100% 50%; filter:drop-shadow(0 1px 0 rgba(255,248,214,.7)) drop-shadow(0 0 2px rgba(90,38,105,.28)); }
-  }
   @keyframes sigilTwinkle{
     0%,100%{ opacity:.62; transform:scale(.88) rotate(0deg); }
     48%{ opacity:1; transform:scale(1.08) rotate(22deg); }
     62%{ opacity:.88; transform:scale(1) rotate(30deg); }
   }
   @media (prefers-reduced-motion:reduce){
-    .cardtitle span:not(.dot),.cardtitle .dot{ animation:none; }
+    .cardtitle .dot{ animation:none; }
   }
 
   /* ---------- Control panel ---------- */
@@ -430,9 +447,9 @@
   .titlefield:focus{ outline:none; border-color:#ffce6e; }
   .row{ display:flex; gap:10px; }
   .row .ctrl{ flex:1; }
-  .slots{ display:flex; gap:8px; }
+  .slots{ display:flex; flex-wrap:wrap; gap:8px; }
   .slot{
-    flex:1; border:1px dashed rgba(255,255,255,.22); border-radius:10px;
+    flex:1 1 70px; border:1px dashed rgba(255,255,255,.22); border-radius:10px;
     padding:9px 6px; text-align:center; font-size:10px; cursor:pointer;
     color:#b3a9cc; transition:.15s; line-height:1.4;
   }
@@ -467,6 +484,7 @@
           <div class="scene3d" id="scene3d">
             <div class="back-plane" id="backPlane">
               <div class="layer bg" id="bg"></div>
+              <div class="bgshine" id="bgshine"></div>
             </div>
             <div class="layer charshadow" id="charshadow"></div>
             <div class="mid-plane" id="midPlane">
@@ -484,7 +502,8 @@
             <div class="recess" id="recess"></div>
             <div class="layer frame"            id="frame"></div>
             <div class="frame-shine" id="frameshine"></div>
-            <div class="cardtitle" id="cardtitle"><span class="dot">✦</span><span id="titletext">THE FOOL</span><span class="dot">✦</span></div>
+            <div class="frame-stroke-shine"></div>
+            <div class="cardtitle" id="cardtitle"><span class="dot">✦</span><span id="titletext" data-text="THE FOOL">THE FOOL</span><span class="dot">✦</span></div>
           </div>
         </div>
         </div>
@@ -498,11 +517,13 @@
 
     <div class="slots">
       <div class="slot" id="slotBg">▤<br>Scene<small>back</small></div>
+      <div class="slot" id="slotBgShine">✦<br>Shine<small>background</small></div>
       <div class="slot" id="slotChar">☺<br>Character<small>mid</small></div>
       <div class="slot" id="slotShine">✦<br>Shine<small>character</small></div>
       <div class="slot" id="slotFrame">▢<br>Frame<small>front</small></div>
     </div>
     <input type="file" id="fileBg" accept="image/*" hidden>
+    <input type="file" id="fileBgShine" accept="image/*" hidden>
     <input type="file" id="fileChar" accept="image/*" hidden>
     <input type="file" id="fileShine" accept="image/*" hidden>
     <input type="file" id="fileFrame" accept="image/*" hidden>
@@ -511,12 +532,12 @@
     <input type="text" id="titleInput" value="THE FOOL" placeholder="Card name…" class="titlefield">
     <div class="row">
       <div class="ctrl">
-        <label>Title size <b id="vTsz">1.00×</b></label>
-        <input type="range" id="rTsz" min="40" max="180" value="100">
+        <label>Title size <b id="vTsz">1.07×</b></label>
+        <input type="range" id="rTsz" min="40" max="180" value="107">
       </div>
       <div class="ctrl">
-        <label>Title Y <b id="vTy">0.0</b></label>
-        <input type="range" id="rTy" min="-60" max="60" value="0">
+        <label>Title Y <b id="vTy">-0.2</b></label>
+        <input type="range" id="rTy" min="-60" max="60" value="-2">
       </div>
     </div>
 
@@ -544,16 +565,16 @@
         <input type="range" id="rPch" min="100" max="118" value="100">
       </div>
       <div class="ctrl">
-        <label>Background fill <b id="vBgfill">1.34×</b></label>
-        <input type="range" id="rBgfill" min="100" max="160" value="134">
+        <label>Background fill <b id="vBgfill">1.15×</b></label>
+        <input type="range" id="rBgfill" min="100" max="160" value="115">
       </div>
     </div>
 
     <p class="grouplabel">Character position (px) · +right / +down</p>
     <div class="row">
       <div class="ctrl">
-        <label>Char X → <b id="vCox">26</b></label>
-        <input type="range" id="rCox" min="-80" max="80" value="26">
+        <label>Char X → <b id="vCox">0</b></label>
+        <input type="range" id="rCox" min="-80" max="80" value="0">
       </div>
       <div class="ctrl">
         <label>Char Y ↓ <b id="vCoy">16</b></label>
@@ -587,20 +608,27 @@
 
     <p class="grouplabel">Character shine</p>
     <div class="ctrl">
-      <label>Shine strength <b id="vShine">0.38</b></label>
-      <input type="range" id="rShine" min="0" max="125" value="38">
+      <label>Shine strength <b id="vShine">0.47</b></label>
+      <input type="range" id="rShine" min="0" max="125" value="47">
+    </div>
+
+    <p class="grouplabel">Background shine</p>
+    <div class="ctrl">
+      <label>Shine strength <b id="vBgShine">0.51</b></label>
+      <input type="range" id="rBgShine" min="0" max="125" value="51">
     </div>
 
     <p class="grouplabel">Frame shine</p>
     <div class="ctrl">
-      <label>Shine strength <b id="vFrameShine">0.90</b></label>
-      <input type="range" id="rFrameShine" min="0" max="125" value="90">
+      <label>Shine strength <b id="vFrameShine">0.49</b></label>
+      <input type="range" id="rFrameShine" min="0" max="125" value="49">
     </div>
 
     <div class="toggles">
       <div class="toggle on" id="tFloat">Idle float</div>
       <div class="toggle on" id="tShadow">Char shadow</div>
       <div class="toggle on" id="tShine">Char shine</div>
+      <div class="toggle on" id="tBgShine">Background shine</div>
       <div class="toggle on" id="tFrameShine">Frame shine</div>
       <div class="toggle on" id="tGyro">Gyro</div>
       <div class="toggle" id="tSpread">3-card spread</div>
@@ -611,13 +639,14 @@
       <button class="act" id="btnExport">Copy CSS values</button>
     </div>
 
-    <p class="hint">The character and shine use the same full-size canvas and rendering geometry, keeping their pixels registered. The frame still owns the fixed aperture.</p>
+    <p class="hint">Each shine uses the same full-size canvas and rendering geometry as its artwork layer, keeping their pixels registered. The frame still owns the fixed aperture.</p>
   </aside>
 
 <script>
 (() => {
   const stage = document.getElementById('stage');
   const bg     = document.getElementById('bg');
+  const bgshine = document.getElementById('bgshine');
   const charL  = document.getElementById('char');
   const charshine = document.getElementById('charshine');
   const frame  = document.getElementById('frame');
@@ -644,6 +673,7 @@
     edgeLeft:stageEl.querySelector('.edge-left'),
     edgeRight:stageEl.querySelector('.edge-right'),
     bg:stageEl.querySelector('.layer.bg'),
+    bgshine:stageEl.querySelector('.bgshine'),
     recess:stageEl.querySelector('.recess'),
     charL:stageEl.querySelector('.layer.char'),
     charshadow:stageEl.querySelector('.charshadow'),
@@ -651,6 +681,7 @@
     charshine:stageEl.querySelector('.charshine'),
     frame:stageEl.querySelector('.layer.frame'),
     frameshine:stageEl.querySelector('.frame-shine'),
+    frameStrokeShine:stageEl.querySelector('.frame-stroke-shine'),
     cardglow:stageEl.querySelector('.cardglow'),
     shadow:stageEl.querySelector('.shadow'),
     titletext:stageEl.querySelector('.cardtitle span:not(.dot)')
@@ -664,24 +695,27 @@
     tilt:15,
     depth:180,
     charDepth:60,
-    bgfill:1.34,
+    bgfill:1.15,
     cfill:1,
-    coffx:26,
+    coffx:0,
     coffy:16,
     shad:.4,
     sho:1,
-    shine:.38,
-    frameShine:.9,
+    shine:.47,
+    bgShine:.51,
+    frameShine:.49,
     ease:.12,
     idle:1.6,
-    titleY:0,
+    titleY:-.2,
     float:true,
     gyro:true,
     chshadow:true,
     charshine:true,
+    bgShineEnabled:true,
     frameShineEnabled:true,
     spread:false
   };
+  updateTitlePos();
 
   // pointer target + current (for smooth lerp)
   let tx=0, ty=0, cx=0, cy=0, hovering=false;
@@ -732,10 +766,9 @@
       `translate(${bgShiftX}px, ${bgShiftY}px) scale(${cfg.bgfill})`;
     const charTransform =
       `translate(${cfg.coffx+charShiftX}px, ${cfg.coffy+charShiftY}px) scale(${cfg.cfill})`;
-    const shineX=50+cx*72, shineY=50+cy*58;
-    root.setProperty('--shine-x',shineX+'%');
-    root.setProperty('--shine-y',shineY+'%');
-
+    // On a 300%-wide mask, 100% places the band beyond the left edge and 0%
+    // beyond the right, producing one continuous side-to-side sweep.
+    root.setProperty('--shine-line-x',(50-cx*50).toFixed(2)+'%');
     // The cast shadow is projected onto the scene plane.
     const lx = (8 + cfg.charDepth*.18)*cfg.sho;
     const ly = (12 + cfg.charDepth*.28)*cfg.sho;
@@ -762,6 +795,7 @@
       view.card.style.transform=cardTransform;
       view.cardglow.style.transform=glowTransform;
       view.bg.style.transform=bgTransform;
+      view.bgshine.style.transform=bgTransform;
       view.charL.style.transform=charTransform;
       view.charshineWrap.style.transform=charTransform;
       view.charshadow.style.transform=charshadowTransform;
@@ -797,13 +831,18 @@
   bind('rShad',  v=>(v/100).toFixed(2),    v=>{cfg.shad=v/100; root.setProperty('--chshadow-op', v/100);});
   bind('rSho',   v=>(v/100).toFixed(1)+'×', v=>cfg.sho=v/100);
   bind('rShine', v=>(v/100).toFixed(2),    v=>{cfg.shine=v/100; root.setProperty('--shine-op',v/100);});
+  bind('rBgShine', v=>(v/100).toFixed(2), v=>{cfg.bgShine=v/100; root.setProperty('--bg-shine-op',v/100);});
   bind('rFrameShine', v=>(v/100).toFixed(2), v=>{cfg.frameShine=v/100; root.setProperty('--frame-shine-op',v/100);});
   bind('rEase',  v=>(v/100).toFixed(2), v=>{cfg.ease=v/100;});
   bind('rIdle',  v=>(v/100).toFixed(1)+'×', v=>{cfg.idle=v/100;});
   bind('rTsz',   v=>(v/100).toFixed(2)+'×', v=>root.setProperty('--title-scale', v/100));
   bind('rTy',    v=>(v/10).toFixed(1),      v=>{cfg.titleY=v/10; updateTitlePos();});
   document.getElementById('titleInput').addEventListener('input', e => {
-    cardViews.forEach(view => view.titletext.textContent=e.target.value.toUpperCase());
+    const title=e.target.value.toUpperCase();
+    cardViews.forEach(view => {
+      view.titletext.textContent=title;
+      view.titletext.dataset.text=title;
+    });
   });
 
   const toggle = (id, key) => {
@@ -812,12 +851,18 @@
       cfg[key]=!cfg[key]; el.classList.toggle('on', cfg[key]);
       if(key==='chshadow') cardViews.forEach(view => view.charshadow.style.display=cfg.chshadow ? '' : 'none');
       if(key==='charshine') cardViews.forEach(view => view.charshineWrap.style.display=cfg.charshine ? '' : 'none');
-      if(key==='frameShineEnabled') cardViews.forEach(view => view.frameshine.style.display=cfg.frameShineEnabled ? '' : 'none');
+      if(key==='bgShineEnabled') cardViews.forEach(view => view.bgshine.style.display=cfg.bgShineEnabled ? '' : 'none');
+      if(key==='frameShineEnabled') cardViews.forEach(view => {
+        const display=cfg.frameShineEnabled ? '' : 'none';
+        view.frameshine.style.display=display;
+        view.frameStrokeShine.style.display=display;
+      });
     });
   };
   toggle('tFloat','float');
   toggle('tShadow','chshadow');
   toggle('tShine','charshine');
+  toggle('tBgShine','bgShineEnabled');
   toggle('tFrameShine','frameShineEnabled');
   toggle('tGyro','gyro');
   const spreadToggle = document.getElementById('tSpread');
@@ -831,6 +876,7 @@
   function loadInto(layer, url){
     const key =
       layer===bg ? 'bg' :
+      layer===bgshine ? 'bgshine' :
       layer===charL ? 'charL' :
       layer===charshine ? 'charshine' :
       layer===frame ? 'frame' : null;
@@ -841,10 +887,6 @@
       view[key].style.backgroundPosition='center';
     });
     if(layer === frame){
-      cardViews.forEach(view => {
-        view.frameshine.style.webkitMaskImage=`url("${url}")`;
-        view.frameshine.style.maskImage=`url("${url}")`;
-      });
       measureFrame(url);
     }
     if(layer === charL){
@@ -924,7 +966,7 @@
             view.edgeLeft.style.top=view.edgeRight.style.top=top+'%';
             view.edgeLeft.style.bottom=view.edgeRight.style.bottom=bottom+'%';
           });
-          // banner sits between the window bottom and the card's bottom edge → place title
+          // Banner sits between the window bottom and the card's bottom edge.
           let cb=h-1; while(cb>0 && A(cxp,cb)<20) cb--;
           titleBaseY = (wb/h + (cb/h - wb/h)*0.45) * 100;
           updateTitlePos();
@@ -942,6 +984,7 @@
     slot.addEventListener('drop', e => { const f=e.dataTransfer.files[0]; if(f) loadInto(layer, URL.createObjectURL(f)); });
   };
   wire('slotBg','fileBg', bg);
+  wire('slotBgShine','fileBgShine', bgshine);
   wire('slotChar','fileChar', charL);
   wire('slotShine','fileShine', charshine);
   wire('slotFrame','fileFrame', frame);
@@ -949,9 +992,13 @@
   // Cache-bust so re-uploaded assets (same filename) always load the newest version.
   const v = '?t=' + Date.now();
   loadInto(bg,    'cardbackground.png'+v);
+  loadInto(bgshine,'pozadie-shine.png'+v);
   loadInto(charL, 'character.png'+v);
   loadInto(charshine,'shinelayer_character.png'+v);
   loadInto(frame, 'cardframe.png'+v);
+  cardViews.forEach(view => {
+    view.frameshine.style.backgroundImage=`url("cardframeshine.png${v}")`;
+  });
 
   /* ---------- presets ---------- */
   const presets = [
@@ -981,6 +1028,7 @@
 --background-fill:${cfg.bgfill.toFixed(2)};
 --character-offset:${cfg.coffx}px ${cfg.coffy}px;
 --character-fill:${cfg.cfill.toFixed(2)};
+--background-shine:${cfg.bgShine.toFixed(2)};
 --character-shine:${cfg.shine.toFixed(2)};
 --frame-shine:${cfg.frameShine.toFixed(2)};
 --ease:${cfg.ease.toFixed(2)};`;
