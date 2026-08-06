@@ -19,6 +19,10 @@
     overflow:hidden;
   }
 
+  .panel-toggle,
+  .panel-close,
+  .panel-backdrop{ display:none; }
+
   /* ---------- Stage ---------- */
   .stage-wrap{
     flex:1;
@@ -425,6 +429,7 @@
   /* ---------- Control panel ---------- */
   .panel{
     width:300px;
+    position:relative;
     background:rgba(16,12,28,.72);
     backdrop-filter:blur(14px);
     border-left:1px solid rgba(255,255,255,.08);
@@ -471,6 +476,132 @@
   .hint{ font-size:10px; color:#7d7398; line-height:1.5; margin-top:auto; }
   .divider{ height:1px; background:rgba(255,255,255,.08); }
 
+  /* ---------- Mobile layout ---------- */
+  @media (max-width:760px){
+    body{ min-height:100dvh; }
+    .stage-wrap{ width:100vw; min-width:0; }
+    .cards-row{
+      min-width:0;
+      padding:
+        max(14px, env(safe-area-inset-top))
+        max(14px, env(safe-area-inset-right))
+        max(14px, env(safe-area-inset-bottom))
+        max(14px, env(safe-area-inset-left));
+    }
+    .cards-row:not(.spread) .stage{
+      width:min(calc(100vw - 28px), 62vh);
+      width:min(calc(100vw - 28px), 62dvh);
+    }
+    .cards-row.spread{
+      gap:8px;
+      padding-left:8px;
+      padding-right:8px;
+    }
+    .cards-row.spread .stage{
+      width:min(52dvh, calc((100vw - 32px) / 3));
+    }
+
+    .panel-toggle{
+      display:flex;
+      align-items:center;
+      gap:7px;
+      position:fixed;
+      z-index:60;
+      top:max(12px, env(safe-area-inset-top));
+      right:max(12px, env(safe-area-inset-right));
+      min-height:42px;
+      padding:9px 13px;
+      border:1px solid rgba(255,206,110,.5);
+      border-radius:999px;
+      background:rgba(16,12,28,.88);
+      box-shadow:0 8px 26px rgba(0,0,0,.36);
+      backdrop-filter:blur(12px);
+      color:#f6d88e;
+      font:600 12px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+      cursor:pointer;
+    }
+    .panel-toggle:focus-visible,
+    .panel-close:focus-visible{
+      outline:2px solid #ffce6e;
+      outline-offset:3px;
+    }
+    .panel-backdrop{
+      display:block;
+      position:fixed;
+      inset:0;
+      z-index:40;
+      background:rgba(4,2,10,.58);
+      opacity:0;
+      visibility:hidden;
+      pointer-events:none;
+      transition:opacity .22s ease, visibility .22s ease;
+    }
+    .panel{
+      position:fixed;
+      left:0;
+      right:0;
+      bottom:0;
+      z-index:50;
+      width:100%;
+      max-height:min(74dvh, 680px);
+      padding:22px 20px calc(22px + env(safe-area-inset-bottom));
+      border-left:0;
+      border-top:1px solid rgba(255,255,255,.13);
+      border-radius:20px 20px 0 0;
+      background:rgba(16,12,28,.96);
+      box-shadow:0 -18px 55px rgba(0,0,0,.5);
+      transform:translateY(calc(100% + 24px));
+      visibility:hidden;
+      transition:transform .26s ease, visibility .26s ease;
+      overscroll-behavior:contain;
+    }
+    .panel::before{
+      content:"";
+      position:absolute;
+      top:8px;
+      left:50%;
+      width:38px;
+      height:4px;
+      border-radius:4px;
+      transform:translateX(-50%);
+      background:rgba(255,255,255,.2);
+    }
+    .panel-close{
+      display:grid;
+      place-items:center;
+      position:absolute;
+      top:15px;
+      right:16px;
+      width:34px;
+      height:34px;
+      border:1px solid rgba(255,255,255,.14);
+      border-radius:50%;
+      background:rgba(255,255,255,.06);
+      color:#e8e2f5;
+      font-size:20px;
+      line-height:1;
+      cursor:pointer;
+    }
+    body.panel-open .panel{
+      transform:translateY(0);
+      visibility:visible;
+    }
+    body.panel-open .panel-backdrop{
+      opacity:1;
+      visibility:visible;
+      pointer-events:auto;
+    }
+    body.panel-open .panel-toggle{
+      opacity:0;
+      pointer-events:none;
+    }
+  }
+
+  @media (max-width:760px) and (prefers-reduced-motion:reduce){
+    .panel,
+    .panel-backdrop{ transition:none; }
+  }
+
 </style>
 </head>
 <body>
@@ -511,7 +642,13 @@
     </div>
   </div>
 
-  <aside class="panel">
+  <button class="panel-toggle" id="panelToggle" type="button" aria-controls="controlPanel" aria-expanded="false">
+    <span aria-hidden="true">✦</span> Controls
+  </button>
+  <div class="panel-backdrop" id="panelBackdrop" aria-hidden="true"></div>
+
+  <aside class="panel" id="controlPanel" aria-label="Card controls">
+    <button class="panel-close" id="panelClose" type="button" aria-label="Hide controls">×</button>
     <h1>✦ Card Tilt Lab</h1>
     <p class="sub">Frame (front) · character + shine (mid) · scene (back). Move your cursor over the card.</p>
 
@@ -653,6 +790,35 @@
   const frameshine = document.getElementById('frameshine');
   const root   = document.documentElement.style;
   const cardsRow = document.getElementById('cardsRow');
+  const controlPanel = document.getElementById('controlPanel');
+  const panelToggle = document.getElementById('panelToggle');
+  const panelClose = document.getElementById('panelClose');
+  const panelBackdrop = document.getElementById('panelBackdrop');
+  const mobileLayout = window.matchMedia('(max-width:760px)');
+
+  const setPanelOpen = open => {
+    const shouldOpen = mobileLayout.matches && open;
+    document.body.classList.toggle('panel-open', shouldOpen);
+    panelToggle.setAttribute('aria-expanded', String(shouldOpen));
+    controlPanel.setAttribute('aria-hidden', String(mobileLayout.matches && !shouldOpen));
+    controlPanel.inert = mobileLayout.matches && !shouldOpen;
+    if(shouldOpen) panelClose.focus({preventScroll:true});
+  };
+  panelToggle.addEventListener('click', () => setPanelOpen(true));
+  panelClose.addEventListener('click', () => {
+    setPanelOpen(false);
+    panelToggle.focus({preventScroll:true});
+  });
+  panelBackdrop.addEventListener('click', () => setPanelOpen(false));
+  document.addEventListener('keydown', e => {
+    if(e.key==='Escape' && document.body.classList.contains('panel-open')){
+      setPanelOpen(false);
+      panelToggle.focus({preventScroll:true});
+    }
+  });
+  const syncPanelLayout = () => setPanelOpen(!mobileLayout.matches);
+  mobileLayout.addEventListener?.('change', syncPanelLayout);
+  syncPanelLayout();
 
   const mirrorStages = Array.from({length:2}, () => {
     const clone = stage.cloneNode(true);
